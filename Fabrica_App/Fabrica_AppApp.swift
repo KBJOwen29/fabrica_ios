@@ -11,7 +11,10 @@ import SwiftUI
 struct Fabrica_AppApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            NavigationView {
+                GetStarted()
+            }
         }
     }
 }
+
