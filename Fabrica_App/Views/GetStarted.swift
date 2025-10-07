@@ -35,7 +35,7 @@ struct GetStarted: View {
                     Spacer()
 
                     // Get Started Button
-                    NavigationLink(destination: LoginScreen()) {
+                    NavigationLink(destination: LoginScreen().navigationBarBackButtonHidden(true)) {
                         Text("Get Started")
                             .frame(maxWidth: .infinity)
                             .padding()
@@ -48,7 +48,7 @@ struct GetStarted: View {
                 }
                 .padding(.top, 10)  // Additional top padding if necessary
             }
-            .navigationViewStyle(StackNavigationViewStyle())
+            .navigationBarBackButtonHidden(true)
         }
     }
 }

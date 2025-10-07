@@ -2,7 +2,8 @@ import SwiftUI
 
 struct SignUpScreen: View {
     @State private var email: String = ""
-    @State private var navigateToPassword = false
+    @State private var password: String = ""
+    @State private var navigateToVerification = false
 
     // Optional: Email validation (simple regex)
     private func isEmailValid(_ email: String) -> Bool {
@@ -11,10 +12,11 @@ struct SignUpScreen: View {
     }
 
     var body: some View {
-        VStack(spacing: 30) {
+        VStack(spacing: 20) {
             Text("Sign up using your\nEmail Address")
-                .font(.headline)
+                .font(.system(size: 24, weight: .bold))
                 .multilineTextAlignment(.center)
+                .padding(.bottom, 10)
             
             Text("We’ll email you shortly for confirmation")
                 .multilineTextAlignment(.center)
@@ -26,9 +28,26 @@ struct SignUpScreen: View {
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .padding()
 
+            Text("Create a Password")
+                .font(.system(size: 18, weight: .bold))
+            
+            Text("Protect your account by creating a secure password")
+                .multilineTextAlignment(.center)
+                .foregroundColor(.gray)
+            
+            // Displaying the email for context (optional)
+            Text("For: \(email)")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+            
+            SecureField("Password", text: $password)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .padding()
+
+            // Navigation Link to Email Verification Screen
             NavigationLink(
-                destination: PasswordScreen(email: email),
-                isActive: $navigateToPassword
+                destination: EmailVerification().navigationBarBackButtonHidden(true),
+                isActive: $navigateToVerification
             ) {
                 Text("Confirm")
                     .frame(maxWidth: .infinity)
@@ -38,24 +57,25 @@ struct SignUpScreen: View {
                     .cornerRadius(30)
             }
             .padding(.horizontal)
-            .disabled(!isEmailValid(email))
-            .simultaneousGesture(TapGesture().onEnded {
-                let trimmed = email.trimmingCharacters(in: .whitespacesAndNewlines)
-                if isEmailValid(trimmed) {
-                    // email = "" // Uncomment to clear after navigation
-                    navigateToPassword = true
+            .disabled(!isEmailValid(email)) // Disable button if email is not valid
+            .onTapGesture {
+                // Only trigger navigation if the email is valid
+                let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
+                if isEmailValid(trimmedEmail) {
+                    navigateToVerification = true
                 }
-            })
+            }
 
             Spacer()
         }
         .padding()
     }
-    
 }
 
-struct SignupScreen_Previews: PreviewProvider {
+struct SignUpScreen_Previews: PreviewProvider {
     static var previews: some View {
-        SignUpScreen()
+        NavigationView {
+            SignUpScreen()
+        }
     }
 }

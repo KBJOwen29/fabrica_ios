@@ -144,7 +144,7 @@ struct MainMenuScreen: View {
                                 .frame(maxWidth: .infinity) // Distribute space equally
                                 .padding(.vertical, 10)
                         }
-                        NavigationLink(destination: ProfileMenuScreen()) {
+                        NavigationLink(destination:  ProfileMenuScreen()) {
                             Image(systemName: "person.fill")
                                 .font(.system(size: 24))
                                 .foregroundColor(.black) // Black icon color

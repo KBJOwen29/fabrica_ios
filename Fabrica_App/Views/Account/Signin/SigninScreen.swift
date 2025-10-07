@@ -70,7 +70,6 @@ struct SigninScreen: View {
             
             Spacer()
         }
-        .navigationBarHidden(true)
     }
 }
 

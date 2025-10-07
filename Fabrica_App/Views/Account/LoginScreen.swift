@@ -55,7 +55,8 @@ struct LoginScreen: View {
                 }
                 .padding(.top, 10)
             }
-            .navigationViewStyle(StackNavigationViewStyle())
+            .navigationBarBackButtonHidden(true)
+            
         }
     }
 }

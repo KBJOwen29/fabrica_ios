@@ -18,7 +18,7 @@ struct EmailVerification: View {
                 .foregroundColor(.gray)
 
             // Confirm button
-            NavigationLink(destination: LoginScreen()) {
+            NavigationLink(destination: LoginScreen().navigationBarBackButtonHidden(true)) {
                 Text("Confirm")
                     .frame(maxWidth: .infinity)
                     .padding()
