@@ -61,6 +61,7 @@ struct CartMenuScreen: View {
             
         }
         .padding(.bottom, 20)
+        
     }
 }
 
@@ -115,6 +116,8 @@ struct CartItemView: View {
             Image(systemName: "trash")
         }
         .padding(.horizontal)
+        
+        
     }
 }
 

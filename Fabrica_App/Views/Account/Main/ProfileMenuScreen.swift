@@ -23,7 +23,7 @@ struct ProfileMenuScreen: View {
                 // Profile Section
                 HStack(spacing: 10) {
                     // Profile Picture
-                    Image(systemName: "person.circle.fill") // Placeholder for the profile picture
+                    Image("ProfileImageJim") // Placeholder for the profile picture
                         .resizable()
                         .scaledToFit()
                         .frame(width: 100, height: 100)
@@ -36,73 +36,140 @@ struct ProfileMenuScreen: View {
                             .font(.title2)
                             .fontWeight(.bold)
                         Text("0968-719-0116")
-                            .font(.subheadline)
-                            .foregroundColor(.gray)
+                            .font(.system(size: 20))
+                            .fontWeight(.bold)
+                            .foregroundColor(.black)
                         
-                        // Wallet Section
                         
                     }
                 }
-                .padding()
-                
+                .frame(width: 350, height: 150)
+                .background(Color.white)
+                .cornerRadius(15)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 25)
+                        .stroke(Color.black, lineWidth: 2)
+                )
+                .foregroundColor(.black)
+            
+
+                // Wallet Section
                 VStack {
                     Text("Wallet: ")
-                        .font(.headline)
-                        .frame(width: .infinity, alignment: .leading)
+                        .font(.system(size: 22))
+                        .fontWeight(.bold)
+                        .padding(.leading, 3)
+                        .frame(maxWidth: .infinity, alignment: .topLeading)
                     Text("1,000")
                         .font(.title3)
-                        .foregroundColor(.green)
-                        .frame(width: .infinity, alignment: .trailing)
+                        .foregroundColor(.black)
+                        .padding(.trailing, 3)
+                        .frame(maxWidth: .infinity, alignment: .bottomTrailing)
                 }
+                .frame(width: 350, height: 70)
+                .background(Color.white)
+                .cornerRadius(25)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 15)
+                        .stroke(Color.black, lineWidth: 2)
+                )
+                .foregroundColor(.black)
                 
 
                 // Icon Grid Section
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 20) {
                     // Orders
                     NavigationLink(destination: Text("Orders Screen")) {
-                        ProfileIcon(iconName: "box", label: "Orders")
+                        ProfileIcon(iconName: "bag", label: "Orders")
+                            .foregroundColor(.black)
                     }
                     
                     // Delivered
                     NavigationLink(destination: Text("Delivered Screen")) {
                         ProfileIcon(iconName: "checkmark.circle", label: "Delivered")
+                            .foregroundColor(.black)
                     }
 
                     // Rates
                     NavigationLink(destination: Text("Rates Screen")) {
                         ProfileIcon(iconName: "star", label: "Rates")
+                            .foregroundColor(.black)
                     }
 
                     // Wallet
-                    NavigationLink(destination: Text("Wallet Screen")) {
+                    NavigationLink(destination: CashInView()) {
                         ProfileIcon(iconName: "creditcard", label: "Wallet")
+                            .foregroundColor(.black)
                     }
 
                     // Address
                     NavigationLink(destination: Text("Address Screen")) {
                         ProfileIcon(iconName: "map", label: "Address")
+                            .foregroundColor(.black)
                     }
 
                     // Settings
-                    NavigationLink(destination: Text("Settings Screen")) {
+                    NavigationLink(destination: SettingsView()) {
                         ProfileIcon(iconName: "gear", label: "Settings")
+                            .foregroundColor(.black)
                     }
 
                     // FAQs
-                    NavigationLink(destination: Text("FAQs Screen")) {
+                    NavigationLink(destination: FAQsView()) {
                         ProfileIcon(iconName: "questionmark.circle", label: "FAQs")
+                            .foregroundColor(.black)
                     }
 
                     // Logout
                     NavigationLink(destination: Text("Logout Screen")) {
                         ProfileIcon(iconName: "power", label: "Logout")
+                            .foregroundColor(.black)
                     }
+                    
                 }
                 .padding()
+                
+                // Fixed Bottom Navigation Bar with 4 icons (No search icon here anymore)
+                VStack {
+                    Spacer()
+                    HStack {
+                        NavigationLink(destination:  MainMenuScreen().navigationBarBackButtonHidden(true)) {
+                                Image(systemName: "house.fill")
+                                    .font(.system(size: 24))
+                                    .foregroundColor(.black) // Black icon color
+                                    .frame(maxWidth: .infinity) // Distribute space equally
+                                    .padding(.vertical, 10)
+                        }
+                        NavigationLink(destination: CartMenuScreen().navigationBarBackButtonHidden(true)) {
+                            Image(systemName: "cart.fill")
+                                .font(.system(size: 24))
+                                .foregroundColor(.black) // Black icon color
+                                .frame(maxWidth: .infinity) // Distribute space equally
+                                .padding(.vertical, 10)
+                        }
+                        Button(action: {
+                                // Empty action for the Home button (won't navigate anywhere)
+                        }) {
+                            Image(systemName: "person.fill")
+                                .font(.system(size: 24))
+                                .foregroundColor(.black) // Black icon color
+                                .frame(maxWidth: .infinity) // Distribute space equally
+                                .padding(.vertical, 10)
+                        }
+                    }
+                    .padding(.vertical, 10)
+                    .background(Color.white)
+                    .cornerRadius(30) // Rounded edges for bottom tab
+                    .shadow(radius: 10) // Add shadow for effect
+                    .padding(.horizontal)
+                }   
+
 
                 Spacer()
             }
             .navigationBarHidden(true)
+            
+            
         }
     }
 }

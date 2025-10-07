@@ -16,7 +16,7 @@ struct GetStarted: View {
                     Spacer()
 
                     // Title Text
-                    Text("Hello, Shop With Confidence")
+                    Text("Shop With Confidence")
                         .padding(.vertical, 10) // Add paddind to make the text seperated
                         .font(.title)
                         .fontWeight(.bold)

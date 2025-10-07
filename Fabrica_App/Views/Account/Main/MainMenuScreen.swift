@@ -137,14 +137,14 @@ struct MainMenuScreen: View {
                                 .frame(maxWidth: .infinity) // Distribute space equally
                                 .padding(.vertical, 10)
                         }
-                        NavigationLink(destination: CartMenuScreen()) {
+                        NavigationLink(destination: CartMenuScreen().navigationBarBackButtonHidden(true)) {
                             Image(systemName: "cart.fill")
                                 .font(.system(size: 24))
                                 .foregroundColor(.black) // Black icon color
                                 .frame(maxWidth: .infinity) // Distribute space equally
                                 .padding(.vertical, 10)
                         }
-                        NavigationLink(destination:  ProfileMenuScreen()) {
+                        NavigationLink(destination:  ProfileMenuScreen().navigationBarBackButtonHidden(true)) {
                             Image(systemName: "person.fill")
                                 .font(.system(size: 24))
                                 .foregroundColor(.black) // Black icon color
