@@ -5,7 +5,8 @@ struct RecoverPasswordScreen: View {
     @State private var newPassword: String = ""
     @State private var confirmPassword: String = ""
     
-    var accounts: [String]
+    // Accounts are now passed as a list of Account objects
+    var accounts: [Account]
     @State private var showError: Bool = false
     @State private var navigateToSignin: Bool = false
     
@@ -54,10 +55,20 @@ struct RecoverPasswordScreen: View {
             .padding(.top)
             .simultaneousGesture(TapGesture().onEnded {
                 let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
-                if accounts.contains(trimmedEmail) && newPassword == confirmPassword && !newPassword.isEmpty {
-                    showError = false
-                    navigateToSignin = true
+                
+                // Check if account exists and passwords match
+                if let account = accounts.first(where: { $0.getEmail() == trimmedEmail }) {
+                    if newPassword == confirmPassword && !newPassword.isEmpty {
+                        // Set new password if validation is successful
+                        account.setPassword(newPassword: newPassword)
+                        showError = false
+                        navigateToSignin = true
+                    } else {
+                        // Passwords don't match or are empty
+                        showError = true
+                    }
                 } else {
+                    // Email not found in accounts
                     showError = true
                 }
             })
@@ -70,6 +81,11 @@ struct RecoverPasswordScreen: View {
 
 struct RecoverPasswordScreen_Previews: PreviewProvider {
     static var previews: some View {
-        RecoverPasswordScreen(accounts: ["samplemail123@gmail.com", "another@email.com"])
+        let sampleAccounts = [
+            Account(email: "samplemail123@gmail.com", password: "password123"),
+            Account(email: "another@email.com", password: "password456")
+        ]
+        
+        RecoverPasswordScreen(accounts: sampleAccounts)
     }
 }

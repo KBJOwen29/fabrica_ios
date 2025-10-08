@@ -23,12 +23,14 @@ struct ProfileMenuScreen: View {
                 // Profile Section
                 HStack(spacing: 10) {
                     // Profile Picture
-                    Image("ProfileImageJim") // Placeholder for the profile picture
+                    Image("ProfileImageJim")// Placeholder for the profile picture
                         .resizable()
                         .scaledToFit()
                         .frame(width: 100, height: 100)
                         .clipShape(Circle())
                         .padding(.bottom, 10)
+                        .padding(.top, 20)
+
                     VStack{
                         
                         // User's Name and Contact
@@ -43,13 +45,7 @@ struct ProfileMenuScreen: View {
                         
                     }
                 }
-                .frame(width: 350, height: 150)
-                .background(Color.white)
-                .cornerRadius(15)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 25)
-                        .stroke(Color.black, lineWidth: 2)
-                )
+                
                 .foregroundColor(.black)
             
 
@@ -129,6 +125,7 @@ struct ProfileMenuScreen: View {
                 }
                 .padding()
                 
+                
                 // Fixed Bottom Navigation Bar with 4 icons (No search icon here anymore)
                 VStack {
                     Spacer()
@@ -162,10 +159,10 @@ struct ProfileMenuScreen: View {
                     .cornerRadius(30) // Rounded edges for bottom tab
                     .shadow(radius: 10) // Add shadow for effect
                     .padding(.horizontal)
-                }   
+                }
 
 
-                Spacer()
+                
             }
             .navigationBarHidden(true)
             

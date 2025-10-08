@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct EmailVerification: View {
+    var email: String 
+    
     var body: some View {
         VStack(spacing: 30) {
             // Checkmark image
@@ -31,5 +33,11 @@ struct EmailVerification: View {
             Spacer()
         }
         .padding()
+    }
+}
+
+struct EmailVerification_Previews: PreviewProvider {
+    static var previews: some View {
+        EmailVerification(email: "sample@mail.com") // Just email, no Account object
     }
 }

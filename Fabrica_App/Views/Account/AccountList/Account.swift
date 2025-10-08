@@ -1,52 +1,96 @@
 import Foundation
 
-// MARK: - Account Struct
-struct Account {
-    let email: String
-    private let hashedPassword: String
-
-    // Initializer
-    init(email: String, password: String) {
+// Class representing a User with encapsulated properties
+public class Account {
+   
+    private var email: String
+    private var password: String
+    private var name: String?
+    private var cellphoneNumber: String?
+    private var wallet: Double
+    
+    // Public initializer to create a new User instance with only email and password
+    public init(email: String, password: String) {
         self.email = email
-        self.hashedPassword = Account.hash(password: password)
+        self.password = password
+        self.wallet = 1000 // Default wallet balance is 1000
     }
-
-    // Verify if the provided password matches the hashed password
-    func verifyPassword(_ password: String) -> Bool {
-        return Account.hash(password: password) == hashedPassword
+    
+    // Static method to get default admin account (for testing or bypassing registration)
+    public static func getDefaultAdmin() -> Account {
+        return Account(email: "admin@example.com", password: "admin123")  // You can change these values
     }
-
-    // Hashing function (simple example, replace with a secure hashing algorithm in production)
-    private static func hash(password: String) -> String {
-        return String(password.reversed()) // Simple, for demonstration only
+    
+    // Methods to access and update each property
+    
+    // Email
+    public func getEmail() -> String {
+        return email
+    }
+    
+    public func setEmail(newEmail: String) {
+        email = newEmail
+    }
+    
+    // Password
+    public func getPassword() -> String {
+        return password
+    }
+    
+    public func setPassword(newPassword: String) {
+        password = newPassword
+    }
+    
+    // Name
+    public func getName() -> String? {
+        return name
+    }
+    
+    public func setName(newName: String?) {
+        name = newName
+    }
+    
+    // Cellphone Number
+    public func getCellphoneNumber() -> String? {
+        return cellphoneNumber
+    }
+    
+    public func setCellphoneNumber(newCellphone: String?) {
+        cellphoneNumber = newCellphone
+    }
+    
+    // Wallet
+    public func getWalletBalance() -> Double {
+        return wallet
+    }
+    
+    public func setWalletBalance(newWalletBalance: Double) {
+        wallet = newWalletBalance
+    }
+    
+    // Public method to add funds to the wallet
+    public func addFunds(amount: Double) {
+        wallet += amount
+    }
+    
+    // Public method to subtract funds from the wallet
+    public func subtractFunds(amount: Double) {
+        if wallet >= amount {
+            wallet -= amount
+        } else {
+            print("Insufficient funds")
+        }
+    }
+    
+    // Method to update the user's details
+    public func updateDetails(name: String?, cellphone: String?, walletBalance: Double?) {
+        if let name = name { self.name = name }
+        if let cellphone = cellphone { self.cellphoneNumber = cellphone }
+        if let walletBalance = walletBalance { self.wallet = walletBalance }
+    }
+    
+    // Password validation
+    public func verifyPassword(inputPassword: String) -> Bool {
+        return inputPassword == password
     }
 }
-
-// MARK: - AccountManager Class to Manage Accounts
-class AccountManager {
-    private var accounts: [String: Account] = [:] // Using email as the key
-
-    // Function to add a new account
-    func addAccount(email: String, password: String) -> String {
-        if accounts[email] != nil {
-            return "Account with this email already exists."
-        }
-        
-        let newAccount = Account(email: email, password: password)
-        accounts[email] = newAccount
-        return "Account created successfully."
-    }
-
-    // Function to verify a user's credentials
-    func verifyAccount(email: String, password: String) -> Bool {
-        guard let account = accounts[email] else {
-            return false
-        }
-        return account.verifyPassword(password)
-    }
-}
-
-// Example Usage:
-// let accountManager = AccountManager()
-// print(accountManager.addAccount(email: "test@example.com", password: "securePassword"))
-// let isValid = accountManager.verifyAccount(email: "test@example.com", password: "securePassword")

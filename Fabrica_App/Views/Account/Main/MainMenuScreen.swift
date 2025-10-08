@@ -73,7 +73,7 @@ struct MainMenuScreen: View {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 20) {
                                 NavigationLink(destination: Text("Men Category")) {
-                                    CategoryItem(name: "Men", imageName: "men") // Change to your image name
+                                    CategoryItem(name: "Men", imageName: "Men") // Change to your image name
                                 }
                                 NavigationLink(destination: Text("Women Category")) {
                                     CategoryItem(name: "Women", imageName: "women") // Change to your image name

@@ -1,7 +1,11 @@
 import SwiftUI
 
 struct LoginScreen: View {
-    @State private var accounts: [String] = []
+    // Change the accounts array to hold Account objects
+    @State private var accounts: [Account] = [
+        Account(email: "samplemail123@gmail.com", password: "password123"),
+        Account(email: "another@email.com", password: "password456")
+    ]
 
     var body: some View {
         NavigationView {
@@ -56,7 +60,6 @@ struct LoginScreen: View {
                 .padding(.top, 10)
             }
             .navigationBarBackButtonHidden(true)
-            
         }
     }
 }

@@ -46,7 +46,7 @@ struct SignUpScreen: View {
 
             // Navigation Link to Email Verification Screen
             NavigationLink(
-                destination: EmailVerification().navigationBarBackButtonHidden(true),
+                destination: EmailVerification(email: email).navigationBarBackButtonHidden(true),
                 isActive: $navigateToVerification
             ) {
                 Text("Confirm")
@@ -60,8 +60,7 @@ struct SignUpScreen: View {
             .disabled(!isEmailValid(email)) // Disable button if email is not valid
             .onTapGesture {
                 // Only trigger navigation if the email is valid
-                let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
-                if isEmailValid(trimmedEmail) {
+                if isEmailValid(email) {
                     navigateToVerification = true
                 }
             }
