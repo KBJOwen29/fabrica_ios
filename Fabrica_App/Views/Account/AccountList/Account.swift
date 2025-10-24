@@ -94,3 +94,8 @@ public class Account {
         return inputPassword == password
     }
 }
+
+// - Shared accounts repository -------------------------------------------------
+// A small singleton repository so multiple screens can read/add accounts without
+// having to thread bindings through every NavigationLink. This preserves current
+// function signatures but lets SigninScreen fall back to this shared store.

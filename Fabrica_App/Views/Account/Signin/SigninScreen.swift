@@ -53,27 +53,41 @@ struct SigninScreen: View {
                 let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
                 print("Attempting to sign in with email: \(trimmedEmail)")
 
-                // Check if the account exists and if the password matches
+                // 1) First check the accounts passed to this view (existing behavior)
                 if let account = accounts.first(where: {
                     $0.getEmail().trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == trimmedEmail
                 }) {
-                    print("Account found: \(account.getEmail())")
+                    print("Account found in local accounts: \(account.getEmail())")
 
                     if account.verifyPassword(inputPassword: password) {
-                        print("Password verified successfully.")
-                        // If the email and password match, navigate to Main Menu
+                        print("Password verified successfully (local accounts).")
                         showError = false
                         navigateToMainMenu = true
                     } else {
-                        print("Incorrect password.")
-                        // Password is incorrect
+                        print("Incorrect password (local accounts).")
                         showError = true
                     }
-                } else {
-                    print("Account with email \(trimmedEmail) not found.")
-                    // Email doesn't exist in the accounts list
-                    showError = true
+                    return
                 }
+
+                // 2) Fallback: check the shared AccountsRepository (covers default admin and accounts added elsewhere)
+                if let repoAccount = AccountsRepository.shared.findAccount(matchingEmail: trimmedEmail) {
+                    print("Account found in shared repository: \(repoAccount.getEmail())")
+                    if repoAccount.verifyPassword(inputPassword: password) {
+                        print("Password verified successfully (shared repository).")
+                        showError = false
+                        navigateToMainMenu = true
+                    } else {
+                        print("Incorrect password (shared repository).")
+                        showError = true
+                    }
+                    return
+                }
+
+                // 3) Not found anywhere
+                print("Account with email \(trimmedEmail) not found in local accounts or shared repository.")
+                showError = true
+
             }) {
                 Text("Confirm")
                     .font(.headline)

@@ -8,7 +8,7 @@
 import SwiftUI
 
 @main
-struct Fabrica_AppApp: App {
+struct Fabrica_App: App {
     var body: some Scene {
         WindowGroup {
             NavigationView {
