@@ -10,40 +10,44 @@ struct ProductDetailView: View {
     
     var body: some View {
         VStack(alignment: .leading) {
-            if let _ = item {
+            if let item = item {
                 // Product Image
-                Image(systemName: "photo")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 200, height: 200)
-                    .padding()
-                    .background(Color.gray.opacity(0.2))
-                    .cornerRadius(10)
-                    .frame(maxWidth: .infinity, alignment: .center) // This centers the image horizontally
+                // Try to load named asset, fallback to system photo icon if missing
+                Group {
+                    if UIImage(named: item.imageName) != nil {
+                        Image(item.imageName)
+                            .resizable()
+                    } else {
+                        Image(systemName: "photo")
+                            .resizable()
+                            .foregroundColor(.gray)
+                    }
+                }
+                .scaledToFit()
+                .frame(width: 200, height: 200)
+                .padding()
+                .background(Color.gray.opacity(0.2))
+                .cornerRadius(10)
+                .frame(maxWidth: .infinity, alignment: .center) // This centers the image horizontally
                 
                 // Product Name
-                Text("Product Name Placeholder")
+                Text(item.name)
                     .font(.title)
                     .bold()
                     .padding(.top)
                     .frame(maxWidth: .infinity, alignment: .leading) // Ensure left alignment
                 
-                // Rating (star)
+                // Rating (star) — placeholder rating for now
                 HStack {
                     Text("4.5 ⭐")
                     Spacer()
                 }
                 .padding(.top, 5)
-                .frame(maxWidth: .infinity, alignment: .leading) // Ensure left alignment
                 
-                // Price and Discount
+                // Price and Discount — currently no discount information in Item, so show price
                 HStack {
-                    Text("₱0.00")
-                        .strikethrough()
-                        .foregroundColor(.gray)
-                        .font(.body)
-                    
-                    Text("₱0.00") // Discounted price
+                    // Only show original price if you have discount info. For now show main price.
+                    Text("₱\(Int(item.price))")
                         .foregroundColor(.red)
                         .font(.title2)
                         .bold()
@@ -51,13 +55,15 @@ struct ProductDetailView: View {
                 .padding(.top)
                 .frame(maxWidth: .infinity, alignment: .leading) // Ensure left alignment
                 
-                // Description Section
+                // Description Section (use Item properties)
                 VStack(alignment: .leading) {
                     Text("Description:")
                         .font(.headline)
                         .padding(.top)
-                    Text("Type: Placeholder")
-                    Text("Size: Placeholder")
+                    Text("Type: \(item.type)")
+                    Text("Size: \(item.size)")
+                    Text("Color: \(item.color)")
+                    Text("Category: \(item.category)")
                 }
                 .padding(.horizontal)
                 
@@ -73,7 +79,6 @@ struct ProductDetailView: View {
                             .foregroundColor(.white)
                             .cornerRadius(10)
                     }
-                    .padding(.horizontal)
                     
                     Button(action: {
                         // Action for buy now
@@ -85,8 +90,8 @@ struct ProductDetailView: View {
                             .foregroundColor(.white)
                             .cornerRadius(10)
                     }
-                    .padding(.horizontal)
                 }
+                .padding(.horizontal)
                 .padding(.top)
             } else {
                 // If item is not found
@@ -94,6 +99,8 @@ struct ProductDetailView: View {
                     .font(.title)
                     .foregroundColor(.red)
             }
+            
+            Spacer()
         }
         .navigationBarTitle("Product Details", displayMode: .inline)
         .padding()
@@ -102,7 +109,7 @@ struct ProductDetailView: View {
 
 struct ProductDetailView_Preview: PreviewProvider {
     static var previews: some View {
-        // Show the layout with empty placeholders (use any sample itemID for preview)
+        // Show the layout with a sample itemID for preview
         ProductDetailView(itemID: "SHO-001")
     }
 }

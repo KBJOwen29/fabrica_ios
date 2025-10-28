@@ -99,11 +99,15 @@ struct MainMenuScreen: View {
                             GridItem(.flexible())
                         ], spacing: 20) {
                             ForEach(limitedOffers, id: \.id) { offer in
-                                OfferItem(offer: offer)
+                                // Wrap the tile in a NavigationLink so the whole tile is tappable
+                                NavigationLink(destination: ProductDetailView(itemID: offer.id)) {
+                                    OfferItem(offer: offer)
+                                }
+                                .buttonStyle(.plain) // Keep tile appearance (no default button styling)
                             }
                         }
                         .padding(.horizontal)
-                        
+
                         // "For You" Section
                         Text("For You")
                             .font(.headline)
@@ -114,7 +118,10 @@ struct MainMenuScreen: View {
                             GridItem(.flexible())
                         ], spacing: 20) {
                             ForEach(forYouItems, id: \.id) { offer in
-                                OfferItem(offer: offer)
+                                NavigationLink(destination: ProductDetailView(itemID: offer.id)) {
+                                    OfferItem(offer: offer)
+                                }
+                                .buttonStyle(.plain)
                             }
                         }
                         .padding(.horizontal)
@@ -159,10 +166,12 @@ struct MainMenuScreen: View {
                     .padding(.horizontal)
                 }
             }
+            .navigationBarHidden(true)
         }
     }
 }
 
+// MARK: - CategoryItem (unchanged)
 struct CategoryItem: View {
     let name: String
     let imageName: String
@@ -184,6 +193,7 @@ struct CategoryItem: View {
     }
 }
 
+// MARK: - OfferItem (visual only, no navigation logic here)
 struct OfferItem: View {
     let offer: OfferItemModel
     
@@ -198,28 +208,24 @@ struct OfferItem: View {
                 .frame(maxWidth: .infinity) // Center image horizontally
 
             VStack(alignment: .leading) {
-                // Title of the item
                 Text(offer.title)
                     .bold()
                     .lineLimit(1)
                     .foregroundColor(.black)
                 
-                // Only show discount in the Limited Offers section
                 if let discount = offer.discount {
                     Text(discount)
                         .font(.caption)
                         .foregroundColor(.red)
                 }
                 
-                // Show the original price first, followed by the discounted price for limited offers
-                if let _ = offer.discount {
+                if offer.discount != nil {
                     Text(offer.originalPrice) // Original price with strikethrough
                         .strikethrough()
                         .foregroundColor(.gray)
                         .font(.caption)
                 }
                 
-                // Show the final price (discounted or regular) for both sections
                 Text(offer.price) // Price (discounted or regular)
                     .bold()
                     .font(.title2)
@@ -233,10 +239,8 @@ struct OfferItem: View {
         .frame(width: 150, height: 230) // Adjust size for each offer item
         .padding(5)
         .background(RoundedRectangle(cornerRadius: 15).stroke(Color.gray, lineWidth: 1))
-        .background(NavigationLink(destination: ProductDetailView(itemID: offer.id)) { EmptyView() }) // Navigate to the ProductDetailView
     }
 }
-
 
 struct MainMenuScreen_Previews: PreviewProvider {
     static var previews: some View {
