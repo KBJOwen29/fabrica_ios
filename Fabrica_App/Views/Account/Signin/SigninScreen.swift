@@ -6,9 +6,12 @@ struct SigninScreen: View {
     @State private var showError: Bool = false
     @State private var navigateToMainMenu: Bool = false
 
-    // Receive accounts from parent view
+    // Receive accounts from parent view (kept for backwards compatibility/testing)
     var accounts: [Account]  // This will be the list of Account objects
-    
+
+    // Use shared AuthService
+    @ObservedObject private var auth = AuthService.shared
+
     var body: some View {
         VStack(spacing: 20) {
             Spacer()
@@ -20,7 +23,7 @@ struct SigninScreen: View {
                 .padding(.horizontal)
 
             TextField("samplemail123@gmail.com", text: $email)
-                .textInputAutocapitalization(.never)  // Prevent email from auto-capitalizing
+                .textInputAutocapitalization(.never)
                 .padding()
                 .background(RoundedRectangle(cornerRadius: 10).stroke(Color.gray, lineWidth: 1))
                 .padding(.horizontal)
@@ -40,54 +43,23 @@ struct SigninScreen: View {
                 }
             }
 
-            // Show error message if the credentials are wrong
-            if showError {
-                Text("Account not found or incorrect password. Please check and try again.")
+            if showError || auth.authError != nil {
+                Text(auth.authError ?? "Account not found or incorrect password. Please check and try again.")
                     .foregroundColor(.red)
                     .font(.subheadline)
                     .padding(.horizontal)
             }
 
-            // Confirm Button - programmatic navigation
+            // Confirm Button - programmatic navigation using AuthService
             Button(action: {
                 let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-                print("Attempting to sign in with email: \(trimmedEmail)")
-
-                // 1) First check the accounts passed to this view (existing behavior)
-                if let account = accounts.first(where: {
-                    $0.getEmail().trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == trimmedEmail
-                }) {
-                    print("Account found in local accounts: \(account.getEmail())")
-
-                    if account.verifyPassword(inputPassword: password) {
-                        print("Password verified successfully (local accounts).")
-                        showError = false
-                        navigateToMainMenu = true
-                    } else {
-                        print("Incorrect password (local accounts).")
-                        showError = true
-                    }
-                    return
+                let success = auth.signIn(email: trimmedEmail, password: password)
+                if success {
+                    showError = false
+                    navigateToMainMenu = true
+                } else {
+                    showError = true
                 }
-
-                // 2) Fallback: check the shared AccountsRepository (covers default admin and accounts added elsewhere)
-                if let repoAccount = AccountsRepository.shared.findAccount(matchingEmail: trimmedEmail) {
-                    print("Account found in shared repository: \(repoAccount.getEmail())")
-                    if repoAccount.verifyPassword(inputPassword: password) {
-                        print("Password verified successfully (shared repository).")
-                        showError = false
-                        navigateToMainMenu = true
-                    } else {
-                        print("Incorrect password (shared repository).")
-                        showError = true
-                    }
-                    return
-                }
-
-                // 3) Not found anywhere
-                print("Account with email \(trimmedEmail) not found in local accounts or shared repository.")
-                showError = true
-
             }) {
                 Text("Confirm")
                     .font(.headline)
@@ -105,7 +77,7 @@ struct SigninScreen: View {
                 destination: MainMenuScreen().navigationBarBackButtonHidden(true),
                 isActive: $navigateToMainMenu
             ) {
-                EmptyView()  // This is a hidden navigation link that is activated programmatically
+                EmptyView()
             }
 
             Spacer()
@@ -117,9 +89,8 @@ struct SigninScreen_Previews: PreviewProvider {
     static var previews: some View {
         let sampleAccounts = [
             Account(email: "samplemail123@gmail.com", password: "password123"),
-            Account(email: "admin@example.com", password: "admin123")  // Make sure this is included for testing
+            Account(email: "jimowen@gmail.com", password: "admin123")
         ]
-        
         SigninScreen(accounts: sampleAccounts)
     }
 }

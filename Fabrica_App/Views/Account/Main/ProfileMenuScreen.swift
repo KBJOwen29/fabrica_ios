@@ -16,14 +16,17 @@ struct ProfileMenuScreen: View {
     @State private var navigateToSettings = false
     @State private var navigateToFAQs = false
     @State private var navigateToLogout = false
+
+    // Observe current user so Settings/Wallet changes reflect here
+    @ObservedObject private var auth = AuthService.shared
     
     var body: some View {
         NavigationView {
             VStack(spacing: 20) {
                 // Profile Section
-                HStack(spacing: 10) {
-                    // Profile Picture
-                    Image("ProfileImageJim")// Placeholder for the profile picture
+                HStack(alignment: .top, spacing: 10) {
+                    // Profile Picture (fixed top-left)
+                    Image("ProfileImageJim")
                         .resizable()
                         .scaledToFit()
                         .frame(width: 100, height: 100)
@@ -31,23 +34,22 @@ struct ProfileMenuScreen: View {
                         .padding(.bottom, 10)
                         .padding(.top, 20)
 
-                    VStack{
-                        
-                        // User's Name and Contact
-                        Text("Jim Owen K. Bognalbal")
+                    Spacer()
+
+                    // Name at top-right, number below the name
+                    VStack(alignment: .trailing, spacing: 4) {
+                        Text(auth.currentUser?.getName() ?? "Guest User")
                             .font(.title2)
                             .fontWeight(.bold)
-                        Text("0968-719-0116")
+                        Text(auth.currentUser?.getCellphoneNumber() ?? "")
                             .font(.system(size: 20))
                             .fontWeight(.bold)
                             .foregroundColor(.black)
-                        
-                        
                     }
+                    .padding(.top, 20)
                 }
-                
+                .padding(.horizontal, 50)
                 .foregroundColor(.black)
-            
 
                 // Wallet Section
                 VStack {
@@ -56,7 +58,7 @@ struct ProfileMenuScreen: View {
                         .fontWeight(.bold)
                         .padding(.leading, 3)
                         .frame(maxWidth: .infinity, alignment: .topLeading)
-                    Text("1,000")
+                    Text(formattedWallet)
                         .font(.title3)
                         .foregroundColor(.black)
                         .padding(.trailing, 3)
@@ -70,7 +72,6 @@ struct ProfileMenuScreen: View {
                         .stroke(Color.black, lineWidth: 2)
                 )
                 .foregroundColor(.black)
-                
 
                 // Icon Grid Section
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 20) {
@@ -121,53 +122,55 @@ struct ProfileMenuScreen: View {
                         ProfileIcon(iconName: "power", label: "Logout")
                             .foregroundColor(.black)
                     }
-                    
                 }
                 .padding()
-                
-                
+
                 // Fixed Bottom Navigation Bar with 4 icons (No search icon here anymore)
                 VStack {
                     Spacer()
                     HStack {
                         NavigationLink(destination:  MainMenuScreen().navigationBarBackButtonHidden(true)) {
-                                Image(systemName: "house.fill")
-                                    .font(.system(size: 24))
-                                    .foregroundColor(.black) // Black icon color
-                                    .frame(maxWidth: .infinity) // Distribute space equally
-                                    .padding(.vertical, 10)
+                            Image(systemName: "house.fill")
+                                .font(.system(size: 24))
+                                .foregroundColor(.black)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 10)
                         }
                         NavigationLink(destination: CartMenuScreen().navigationBarBackButtonHidden(true)) {
                             Image(systemName: "cart.fill")
                                 .font(.system(size: 24))
-                                .foregroundColor(.black) // Black icon color
-                                .frame(maxWidth: .infinity) // Distribute space equally
+                                .foregroundColor(.black)
+                                .frame(maxWidth: .infinity)
                                 .padding(.vertical, 10)
                         }
                         Button(action: {
-                                // Empty action for the Home button (won't navigate anywhere)
+                            // Empty action for the Home button (won't navigate anywhere)
                         }) {
                             Image(systemName: "person.fill")
                                 .font(.system(size: 24))
-                                .foregroundColor(.black) // Black icon color
-                                .frame(maxWidth: .infinity) // Distribute space equally
+                                .foregroundColor(.black)
+                                .frame(maxWidth: .infinity)
                                 .padding(.vertical, 10)
                         }
                     }
                     .padding(.vertical, 10)
                     .background(Color.white)
-                    .cornerRadius(30) // Rounded edges for bottom tab
-                    .shadow(radius: 10) // Add shadow for effect
+                    .cornerRadius(30)
+                    .shadow(radius: 10)
                     .padding(.horizontal)
                 }
-
-
-                
             }
             .navigationBarHidden(true)
-            
-            
         }
+    }
+
+    // Keep wallet display consistent (e.g., "1,000")
+    private var formattedWallet: String {
+        let value = auth.currentUser?.getWalletBalance() ?? 0.0
+        let fmt = NumberFormatter()
+        fmt.numberStyle = .decimal
+        fmt.maximumFractionDigits = 0
+        return fmt.string(from: NSNumber(value: value)) ?? "0"
     }
 }
 
@@ -177,11 +180,11 @@ struct ProfileIcon: View {
     
     var body: some View {
         VStack {
-            Image(systemName: iconName) // Placeholder for your custom icons
+            Image(systemName: iconName)
                 .resizable()
                 .scaledToFit()
                 .frame(width: 30, height: 30)
-                .padding()
+            .padding()
             Text(label)
                 .font(.caption)
         }

@@ -13,9 +13,18 @@ public final class AuthService: ObservableObject {
     @Published public var authError: String? = nil
 
     private let repository: AccountsRepositoryProtocol
+    public static let shared = AuthService(repository: AccountsRepository.shared)
+
+    // Persist last signed-in email to restore current user on launch
+    private let currentUserKey = "current_user_email_v1"
 
     public init(repository: AccountsRepositoryProtocol = AccountsRepository.shared) {
         self.repository = repository
+        // Restore previously signed-in user (if any)
+        if let savedEmail = UserDefaults.standard.string(forKey: currentUserKey),
+           let acct = repository.findAccount(matchingEmail: savedEmail) {
+            currentUser = acct
+        }
     }
 
     @discardableResult
@@ -28,6 +37,7 @@ public final class AuthService: ObservableObject {
         if acct.verifyPassword(inputPassword: password) {
             currentUser = acct
             authError = nil
+            UserDefaults.standard.set(trimmed, forKey: currentUserKey)
             return true
         } else {
             authError = "Incorrect password"
@@ -54,6 +64,7 @@ public final class AuthService: ObservableObject {
 
     public func signOut() {
         currentUser = nil
+        UserDefaults.standard.removeObject(forKey: currentUserKey)
     }
 
     @discardableResult
@@ -66,5 +77,16 @@ public final class AuthService: ObservableObject {
         acct.setPassword(newPassword: newPassword)
         authError = nil
         return true
+    }
+
+    // Re-publish currentUser if updated account matches the signed-in user
+    public func updateCurrentUserIfSame(_ updated: Account) {
+        let updatedKey = updated.getEmail().trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if let current = currentUser {
+            let currentKey = current.getEmail().trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            if updatedKey == currentKey {
+                currentUser = updated
+            }
+        }
     }
 }

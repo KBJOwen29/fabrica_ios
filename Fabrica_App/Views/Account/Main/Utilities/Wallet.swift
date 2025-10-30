@@ -18,6 +18,15 @@ struct CashInView: View {
         ["1", "2", "3"],
         ["0", ".", "⌫"]
     ]
+
+    // Logic-only wiring
+    @ObservedObject private var auth = AuthService.shared
+    private let repo = AccountsRepository.shared
+
+    // Alerts
+    @State private var showConfirmTopUp = false
+    @State private var showTopUpSuccess = false
+    @State private var showTopUpError = false
     
     var body: some View {
         NavigationView {
@@ -73,6 +82,18 @@ struct CashInView: View {
                 
                 // MARK: - Confirm Button
                 Button(action: {
+                    // Validate before asking to confirm
+                    guard auth.currentUser != nil else {
+                        showTopUpError = true
+                        return
+                    }
+                    let value = Double(amount.trimmingCharacters(in: .whitespacesAndNewlines)) ?? 0
+                    guard value > 0 else {
+                        showTopUpError = true
+                        return
+                    }
+                    showConfirmTopUp = true
+                    // Keep existing log
                     print("Title: \(pageTitle), Amount: \(amount)")
                 }) {
                     Text("Confirm")
@@ -90,6 +111,33 @@ struct CashInView: View {
             .padding()
             .navigationBarTitleDisplayMode(.inline)
             .navigationBarBackButtonHidden(false)
+
+            // Confirm cash-in alert
+            .alert("Confirm cash in", isPresented: $showConfirmTopUp) {
+                Button("Cancel", role: .cancel) {}
+                Button("Confirm") {
+                    guard let user = auth.currentUser else { return }
+                    let value = Double(amount.trimmingCharacters(in: .whitespacesAndNewlines)) ?? 0
+                    user.addFunds(amount: value)
+                    repo.update(user)
+                    auth.updateCurrentUserIfSame(user)
+                    showTopUpSuccess = true
+                }
+            } message: {
+                Text("Proceed to add funds to your wallet?")
+            }
+
+            // Success / error alerts
+            .alert("Cash in successful", isPresented: $showTopUpSuccess) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("Your wallet has been updated.")
+            }
+            .alert("Unable to proceed", isPresented: $showTopUpError) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("Please sign in and enter a valid amount.")
+            }
         }
     }
     

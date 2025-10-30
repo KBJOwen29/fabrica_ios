@@ -2,17 +2,20 @@ import SwiftUI
 
 struct ProductDetailView: View {
     var itemID: String
-    
+
+    // Use the shared CartManager to persist locally
+    @ObservedObject private var cart = CartManager.shared
+    @State private var showAddedAlert = false
+
     // Find the item based on its ID
     var item: Item? {
         return items.first(where: { $0.id == itemID })
     }
-    
+
     var body: some View {
         VStack(alignment: .leading) {
             if let item = item {
                 // Product Image
-                // Try to load named asset, fallback to system photo icon if missing
                 Group {
                     if UIImage(named: item.imageName) != nil {
                         Image(item.imageName)
@@ -28,33 +31,31 @@ struct ProductDetailView: View {
                 .padding()
                 .background(Color.gray.opacity(0.2))
                 .cornerRadius(10)
-                .frame(maxWidth: .infinity, alignment: .center) // This centers the image horizontally
-                
+                .frame(maxWidth: .infinity, alignment: .center)
+
                 // Product Name
                 Text(item.name)
                     .font(.title)
                     .bold()
                     .padding(.top)
-                    .frame(maxWidth: .infinity, alignment: .leading) // Ensure left alignment
-                
+
                 // Rating (star) — placeholder rating for now
                 HStack {
                     Text("4.5 ⭐")
                     Spacer()
                 }
                 .padding(.top, 5)
-                
+
                 // Price and Discount — currently no discount information in Item, so show price
                 HStack {
-                    // Only show original price if you have discount info. For now show main price.
                     Text("₱\(Int(item.price))")
                         .foregroundColor(.red)
                         .font(.title2)
                         .bold()
                 }
                 .padding(.top)
-                .frame(maxWidth: .infinity, alignment: .leading) // Ensure left alignment
-                
+                .frame(maxWidth: .infinity, alignment: .leading)
+
                 // Description Section (use Item properties)
                 VStack(alignment: .leading) {
                     Text("Description:")
@@ -66,11 +67,19 @@ struct ProductDetailView: View {
                     Text("Category: \(item.category)")
                 }
                 .padding(.horizontal)
-                
+
                 // Add to Cart and Buy Now buttons
                 HStack {
                     Button(action: {
-                        // Action for adding to cart
+                        // Add to cart using local persistence (CartManager)
+                        cart.add(productId: item.id,
+                                 name: item.name,
+                                 price: item.price,
+                                 imageURL: item.imageName,
+                                 discount: nil,
+                                 quantity: 1)
+                        // show confirmation
+                        showAddedAlert = true
                     }) {
                         Text("Add to Cart")
                             .frame(maxWidth: .infinity)
@@ -79,9 +88,9 @@ struct ProductDetailView: View {
                             .foregroundColor(.white)
                             .cornerRadius(10)
                     }
-                    
+
                     Button(action: {
-                        // Action for buy now
+                        // Action for buy now (left as-is)
                     }) {
                         Text("Buy Now")
                             .frame(maxWidth: .infinity)
@@ -99,17 +108,21 @@ struct ProductDetailView: View {
                     .font(.title)
                     .foregroundColor(.red)
             }
-            
+
             Spacer()
         }
         .navigationBarTitle("Product Details", displayMode: .inline)
         .padding()
+        .alert(isPresented: $showAddedAlert) {
+            Alert(title: Text("Added to Cart"),
+                  message: Text("\(item?.name ?? "Item") has been added to your cart."),
+                  dismissButton: .default(Text("OK")))
+        }
     }
 }
 
 struct ProductDetailView_Preview: PreviewProvider {
     static var previews: some View {
-        // Show the layout with a sample itemID for preview
         ProductDetailView(itemID: "SHO-001")
     }
 }

@@ -18,7 +18,7 @@ public class Account {
     
     // Static method to get default admin account (for testing or bypassing registration)
     public static func getDefaultAdmin() -> Account {
-        return Account(email: "admin@example.com", password: "admin123")  // You can change these values
+        return Account(email: "jimowen@gmail.com", password: "admin123")  // You can change these values
     }
     
     // Methods to access and update each property

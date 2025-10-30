@@ -81,9 +81,9 @@ struct CartMenuScreen: View {
                 .alert(isPresented: $showConfirmAlert) {
                     Alert(title: Text("Confirm"), message: Text("Proceed to checkout with subtotal \(priceString(cart.subtotal))?"), primaryButton: .default(Text("Yes")), secondaryButton: .cancel())
                 }
+                .padding(.bottom, 30)
                 
                 VStack {
-                    Spacer()
                     HStack {
                         NavigationLink(destination:  MainMenuScreen().navigationBarBackButtonHidden(true)) {
                                 Image(systemName: "house.fill")
