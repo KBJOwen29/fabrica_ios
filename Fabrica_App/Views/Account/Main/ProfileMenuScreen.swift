@@ -2,24 +2,20 @@
 //  ProfileMenuScreen.swift
 //  Fabrica_App
 //
-//  Created by STUDENT on 10/7/25.
+//  Updated to:
+//  - Use a 2-column grid layout (2 x N)
+//  - Link Orders -> OrderHistoryScreen
+//  - Link Rates  -> RatedOrdersScreen
 //
 
 import SwiftUI
 
 struct ProfileMenuScreen: View {
-    @State private var navigateToOrders = false
-    @State private var navigateToDelivered = false
-    @State private var navigateToWallet = false
-    @State private var navigateToRates = false
-    @State private var navigateToAddress = false
-    @State private var navigateToSettings = false
-    @State private var navigateToFAQs = false
-    @State private var navigateToLogout = false
-
     // Observe current user so Settings/Wallet changes reflect here
     @ObservedObject private var auth = AuthService.shared
-    
+    // Shared order store for Order History / Rated Orders
+    @StateObject private var orderStore = OrderStore.shared
+
     var body: some View {
         NavigationView {
             VStack(spacing: 20) {
@@ -74,19 +70,19 @@ struct ProfileMenuScreen: View {
                 .foregroundColor(.black)
 
                 // Icon Grid Section
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 20) {
-                    // Orders
-                    NavigationLink(destination: Text("Orders Screen")) {
+                // Converted from a 3-column grid to a 2-column grid (2 x N)
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 20) {
+                    // Orders -> Order History screen
+                    NavigationLink(destination: OrderHistory().environmentObject(orderStore)) {
                         ProfileIcon(iconName: "bag", label: "Orders")
                             .foregroundColor(.black)
                     }
-                    
 
-                    // Rates
-                    NavigationLink(destination: Text("Rates Screen")) {
-                        ProfileIcon(iconName: "star", label: "Rates")
-                            .foregroundColor(.black)
-                    }
+//                    // Rates -> Rated Orders screen
+//                    NavigationLink(destination: RatedOrdersScreen().environmentObject(orderStore)) {
+//                        ProfileIcon(iconName: "star", label: "Rates")
+//                            .foregroundColor(.black)
+//                    }
 
                     // Wallet
                     NavigationLink(destination: CashInView()) {
@@ -95,7 +91,7 @@ struct ProfileMenuScreen: View {
                     }
 
                     // Address
-                    NavigationLink(destination: Text("Address Screen")) {
+                    NavigationLink(destination: AddressList()) {
                         ProfileIcon(iconName: "map", label: "Address")
                             .foregroundColor(.black)
                     }
@@ -111,7 +107,6 @@ struct ProfileMenuScreen: View {
                         ProfileIcon(iconName: "questionmark.circle", label: "FAQs")
                             .foregroundColor(.black)
                     }
-                    
 
                     // Logout
                     NavigationLink(destination: Text("Logout Screen")) {
@@ -121,7 +116,7 @@ struct ProfileMenuScreen: View {
                 }
                 .padding()
 
-                // Fixed Bottom Navigation Bar with 4 icons (No search icon here anymore)
+                // Fixed Bottom Navigation Bar with 3 icons
                 VStack {
                     Spacer()
                     HStack {
@@ -140,7 +135,7 @@ struct ProfileMenuScreen: View {
                                 .padding(.vertical, 10)
                         }
                         Button(action: {
-                            // Empty action for the Home button (won't navigate anywhere)
+                            // Already on Profile
                         }) {
                             Image(systemName: "person.fill")
                                 .font(.system(size: 24))
@@ -173,14 +168,14 @@ struct ProfileMenuScreen: View {
 struct ProfileIcon: View {
     var iconName: String
     var label: String
-    
+
     var body: some View {
         VStack {
             Image(systemName: iconName)
                 .resizable()
                 .scaledToFit()
                 .frame(width: 30, height: 30)
-            .padding()
+                .padding()
             Text(label)
                 .font(.caption)
         }
@@ -194,5 +189,6 @@ struct ProfileIcon: View {
 struct ProfileScreen_Previews: PreviewProvider {
     static var previews: some View {
         ProfileMenuScreen()
+            .environmentObject(OrderStore.shared)
     }
 }

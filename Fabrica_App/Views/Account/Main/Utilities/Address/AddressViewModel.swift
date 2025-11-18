@@ -8,10 +8,30 @@
 import Foundation
 import Combine
 
+// MARK: - Selection Sheet Kind
 enum PresentingSelection: Identifiable {
     case region, province, city, barangay
-    var id: Int {
-        hashValue
+    var id: Int { hashValue }
+}
+
+// MARK: - Persisted Address Entry (per-account or guest)
+public struct AddressEntry: Codable, Identifiable, Equatable {
+    public let id: UUID
+    public let region: String
+    public let province: String
+    public let city: String
+    public let barangay: String
+    public let notes: String?
+    public let createdAt: Date
+
+    public init(region: String, province: String, city: String, barangay: String, notes: String?) {
+        self.id = UUID()
+        self.region = region
+        self.province = province
+        self.city = city
+        self.barangay = barangay
+        self.notes = notes?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == true ? nil : notes
+        self.createdAt = Date()
     }
 }
 
@@ -25,9 +45,7 @@ final class AddressViewModel: ObservableObject {
     @Published var selectedCity: PHCity?
     @Published var selectedBarangay: PHBarangay?
 
-    // Other fields
-    @Published var street: String = ""
-    @Published var zipCode: String = ""
+    // Optional notes (street/zip removed)
     @Published var notes: String = ""
 
     // Sheet presentation
@@ -37,14 +55,9 @@ final class AddressViewModel: ObservableObject {
 
     init(jsonFileName: String = "philippines") {
         loadData(fileName: jsonFileName)
-
-        // Auto-fill zip code when barangay selected (if available)
-        $selectedBarangay
-            .compactMap { $0?.postalCode }
-            .assign(to: \.zipCode, on: self)
-            .store(in: &cancellables)
     }
 
+    // Derived lists
     var provincesForSelectedRegion: [PHProvince] {
         selectedRegion?.provinces ?? []
     }
@@ -57,15 +70,15 @@ final class AddressViewModel: ObservableObject {
         selectedCity?.barangays ?? []
     }
 
+    // Validation: require region/province/city/barangay
     var isValid: Bool {
-        // require province/city/barangay/street (zip optional but encouraged)
         return selectedRegion != nil &&
                selectedProvince != nil &&
                selectedCity != nil &&
-               selectedBarangay != nil &&
-               !street.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+               selectedBarangay != nil
     }
 
+    // Load PH hierarchy JSON (ensure philippines.json is complete)
     func loadData(fileName: String) {
         if let data = Bundle.main.url(forResource: fileName, withExtension: "json") {
             do {
@@ -88,7 +101,6 @@ final class AddressViewModel: ObservableObject {
 
     // Selection helpers
     func selectRegion(_ region: PHRegion) {
-        // clear dependent selections
         selectedRegion = region
         selectedProvince = nil
         selectedCity = nil
@@ -111,27 +123,70 @@ final class AddressViewModel: ObservableObject {
 
     func selectBarangay(_ barangay: PHBarangay) {
         selectedBarangay = barangay
-        // zip auto-filled by publisher in init if postalCode exists
         presentingSelection = nil
     }
 
-    /// Replace this with your persistence or networking save
+    // Save to storage (per current user if present, otherwise guest storage)
     func save(completion: @escaping () -> Void) {
         guard isValid else { return }
-        let address: [String: String] = [
-            "region": selectedRegion?.name ?? "",
-            "province": selectedProvince?.name ?? "",
-            "city": selectedCity?.name ?? "",
-            "barangay": selectedBarangay?.name ?? "",
-            "street": street.trimmingCharacters(in: .whitespacesAndNewlines),
-            "zipCode": zipCode.trimmingCharacters(in: .whitespacesAndNewlines),
-            "notes": notes.trimmingCharacters(in: .whitespacesAndNewlines)
-        ]
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
-            #if DEBUG
-            print("Saved address:", address)
-            #endif
+
+        let ownerEmail = Self.storageOwnerEmail()
+        let entry = AddressEntry(
+            region: selectedRegion?.name ?? "",
+            province: selectedProvince?.name ?? "",
+            city: selectedCity?.name ?? "",
+            barangay: selectedBarangay?.name ?? "",
+            notes: notes
+        )
+
+        var list = Self.loadAddresses(for: ownerEmail)
+        list.append(entry)
+        Self.saveAddresses(list, for: ownerEmail)
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             completion()
+        }
+    }
+}
+
+// MARK: - Simple UserDefaults storage (per email or guest)
+extension AddressViewModel {
+    // Use current signed-in user's email, otherwise a guest bucket so UI can be tested without login
+    static func storageOwnerEmail() -> String {
+        if let email = AuthService.shared.currentUser?.getEmail() {
+            return email
+        } else {
+            return "__guest__"
+        }
+    }
+
+    private static func storageKey(for email: String) -> String {
+        let trimmed = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return "addresses_storage_v1_\(trimmed)"
+    }
+
+    static func loadAddresses(for email: String) -> [AddressEntry] {
+        let key = storageKey(for: email)
+        guard let data = UserDefaults.standard.data(forKey: key) else { return [] }
+        do {
+            return try JSONDecoder().decode([AddressEntry].self, from: data)
+        } catch {
+            #if DEBUG
+            print("Failed to decode addresses for \(email):", error)
+            #endif
+            return []
+        }
+    }
+
+    static func saveAddresses(_ addresses: [AddressEntry], for email: String) {
+        let key = storageKey(for: email)
+        do {
+            let data = try JSONEncoder().encode(addresses)
+            UserDefaults.standard.set(data, forKey: key)
+        } catch {
+            #if DEBUG
+            print("Failed to encode addresses for \(email):", error)
+            #endif
         }
     }
 }
