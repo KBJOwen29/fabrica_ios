@@ -8,128 +8,81 @@
 import SwiftUI
 
 struct SettingsView: View {
-    @State private var name: String = "Jim Owen K. Bognalbal"
-    @State private var number: String = "0968-719-0116"
-    @State private var email: String = "jimowen@email.com"
-    @State private var password: String = "password"
-    
-    // Logic-only wiring to reflect local storage values
     @ObservedObject private var auth = AuthService.shared
     private let repo = AccountsRepository.shared
 
-    // Single alert controller for the whole screen
+    @State private var name: String = ""
+    @State private var number: String = ""
+    @State private var email: String = ""
+    @State private var password: String = ""
+
+    // Alerts
     @State private var activeAlert: SettingsAlert?
+
+    // Present LoginScreen when user logs out
+    @State private var showSignIn = false
 
     var body: some View {
         NavigationView {
-            VStack(spacing: 24) {
-                
-                // MARK: - Profile Section
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Profile")
-                        .font(.title3)
-                        .bold()
-                    
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Edit Name")
-                            .font(.subheadline)
-                        TextField("Enter name", text: $name)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                        
-                        Text("Edit Number")
-                            .font(.subheadline)
-                        TextField("Enter number", text: $number)
-                            .keyboardType(.phonePad)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                        
-                        HStack {
-                            Spacer()
-                            Button("Save") {
-                                // Show confirmation (do not disable button)
-                                activeAlert = .confirmProfile
-                            }
-                            .font(.subheadline.bold())
-                            .padding(.vertical, 8)
-                            .padding(.horizontal, 14)
-                            .background(RoundedRectangle(cornerRadius: 8).fill(Color(UIColor.systemGray5)))
-                            .foregroundColor(.primary)
-                        }
-                    }
-                    .padding()
-                    .background(Color(UIColor.systemGray6))
-                    .cornerRadius(8)
+            VStack(spacing: 16) {
+                // Profile fields...
+                VStack(spacing: 12) {
+                    TextField("Name", text: $name)
+                        .padding()
+                        .background(RoundedRectangle(cornerRadius: 10).fill(Color(UIColor.systemGray5)))
+                    TextField("Cellphone Number", text: $number)
+                        .padding()
+                        .background(RoundedRectangle(cornerRadius: 10).fill(Color(UIColor.systemGray5)))
+                    TextField("Email", text: $email)
+                        .disabled(true)
+                        .padding()
+                        .background(RoundedRectangle(cornerRadius: 10).fill(Color(UIColor.systemGray5)))
+                    SecureField("Password", text: $password)
+                        .padding()
+                        .background(RoundedRectangle(cornerRadius: 10).fill(Color(UIColor.systemGray5)))
                 }
-                
-                // MARK: - Account Section
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Account")
-                        .font(.title3)
-                        .bold()
-                    
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Email")
-                            .font(.subheadline)
-                        TextField("Email", text: $email)
-                            .keyboardType(.emailAddress)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                            .disabled(true) // Email not editable in current UI
-                        
-                        Text("Password")
-                            .font(.subheadline)
-                        SecureField("Password", text: $password)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                        
-                        HStack {
-                            Spacer()
-                            Button("Save") {
-                                // Show confirmation
-                                activeAlert = .confirmPassword
-                            }
-                            .font(.subheadline.bold())
-                            .padding(.vertical, 8)
-                            .padding(.horizontal, 14)
-                            .background(RoundedRectangle(cornerRadius: 8).fill(Color(UIColor.systemGray5)))
-                            .foregroundColor(.primary)
-                        }
-                    }
-                    .padding()
-                    .background(Color(UIColor.systemGray6))
-                    .cornerRadius(8)
-                }
-                
-                Spacer()
-                
-                // MARK: - Logout Button
-                Button(action: {
-                    activeAlert = .confirmLogout
-                }) {
-                    VStack {
-                        Image(systemName: "arrow.left.to.line")
-                            .font(.title)
+                .foregroundColor(.primary)
+
+                // Action buttons...
+                VStack(spacing: 10) {
+                    Button("Save Profile") { activeAlert = .confirmProfile }
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.black)
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
+
+                    Button("Save Password") { activeAlert = .confirmPassword }
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.black)
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
+
+                    Button(role: .destructive) { activeAlert = .confirmLogout } label: {
                         Text("Logout")
-                            .font(.subheadline)
+                            .frame(maxWidth: .infinity)
+                            .padding()
                     }
-                    .padding()
-                    .frame(maxWidth: .infinity)
                     .background(RoundedRectangle(cornerRadius: 10).fill(Color(UIColor.systemGray5)))
                 }
                 .foregroundColor(.primary)
-                
+
             }
             .padding()
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
-                // Pull values from the restored current user (from local storage)
                 if let user = auth.currentUser {
                     name = user.getName() ?? ""
                     number = user.getCellphoneNumber() ?? ""
                     email = user.getEmail()
                     password = user.getPassword()
                 }
+                // Ensure the sign-in shows if there is no user on entry
+                showSignIn = (auth.currentUser == nil)
             }
             .onReceive(auth.$currentUser) { user in
-                // Keep fields in sync if signed-in account changes
                 if let u = user {
                     name = u.getName() ?? ""
                     number = u.getCellphoneNumber() ?? ""
@@ -141,8 +94,9 @@ struct SettingsView: View {
                     email = ""
                     password = ""
                 }
+                // Trigger sign-in if user becomes nil
+                showSignIn = (user == nil)
             }
-            // Single alert attached high in the view tree so it always presents
             .alert(item: $activeAlert) { alert in
                 switch alert {
                 case .confirmProfile:
@@ -175,10 +129,14 @@ struct SettingsView: View {
                 }
             }
         }
+        // Present LoginScreen when signed out
+        .fullScreenCover(isPresented: $showSignIn) {
+            LoginScreen().navigationBarBackButtonHidden(true)
+        }
     }
-    
+
     // MARK: - Actions
-    
+
     private func performProfileSave() {
         guard let user = auth.currentUser else {
             activeAlert = .saved("No signed-in user.")
@@ -190,7 +148,7 @@ struct SettingsView: View {
         auth.updateCurrentUserIfSame(user)
         activeAlert = .saved("Your name and number have been saved.")
     }
-    
+
     private func performPasswordSave() {
         guard let user = auth.currentUser else {
             activeAlert = .saved("No signed-in user.")
@@ -201,15 +159,16 @@ struct SettingsView: View {
         auth.updateCurrentUserIfSame(user)
         activeAlert = .saved("Your password has been saved.")
     }
-    
+
     private func performLogout() {
         auth.signOut()
-        // Optional: clear local fields
+        // Clear local fields
         name = ""
         number = ""
         email = ""
         password = ""
-        activeAlert = .saved("You have been signed out.")
+        // Immediately show sign-in
+        showSignIn = true
     }
 }
 
@@ -219,7 +178,7 @@ private enum SettingsAlert: Identifiable {
     case confirmPassword
     case confirmLogout
     case saved(String)
-    
+
     var id: String {
         switch self {
         case .confirmProfile: return "confirmProfile"

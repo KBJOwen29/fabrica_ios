@@ -16,6 +16,10 @@ struct OrderSummaryScreen: View {
     private let shippingFee: Double = 50
     private let containerHPadding: CGFloat = 16
 
+    // New: confirmation + programmatic nav to Order History
+    @State private var showConfirmOrder = false
+    @State private var goToOrderHistory = false
+
     init(items: [CartProduct] = []) {
         self.providedItems = items
     }
@@ -95,7 +99,7 @@ struct OrderSummaryScreen: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     if selectedItems.isEmpty {
-                        // Empty/caution state - keep it at the top, do not use maxHeight: .infinity
+                        // Empty/caution state
                         VStack(spacing: 12) {
                             Spacer(minLength: 6)
                             Image(systemName: "exclamationmark.triangle.fill")
@@ -150,9 +154,14 @@ struct OrderSummaryScreen: View {
                 .padding(.vertical, 8)
                 .frame(maxWidth: .infinity, alignment: .topLeading)
             }
-            // Ensure ScrollView takes remaining space
             .frame(maxWidth: .infinity)
             .layoutPriority(1)
+
+            // Programmatic navigation to Order History after placing the order
+            NavigationLink(
+                destination: OrderHistory().environmentObject(OrderStore.shared),
+                isActive: $goToOrderHistory
+            ) { EmptyView() }
 
             // Confirm button (fixed below the scrollable content)
             confirmButton(disabled: selectedItems.isEmpty)
@@ -162,6 +171,24 @@ struct OrderSummaryScreen: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(UIColor.systemBackground).ignoresSafeArea())
         .navigationBarHidden(true)
+        // Confirmation alert
+        .alert(isPresented: $showConfirmOrder) {
+            Alert(
+                title: Text("Confirm Order"),
+                message: Text("Place this order totaling \(priceString(total))?"),
+                primaryButton: .default(Text("Place Order"), action: {
+                    // Transfer items to Order History for current user
+                    OrderStore.shared.addOrdersForCurrentUser(from: selectedItems)
+
+                    // Optional: clear or unselect cart items here if desired
+                    // selectedItems.forEach { cart.remove(id: $0.id) }
+
+                    // Navigate to Order History
+                    goToOrderHistory = true
+                }),
+                secondaryButton: .cancel()
+            )
+        }
     }
 
     private func summaryRow(label: String, value: Double, bold: Bool = false) -> some View {
@@ -178,7 +205,8 @@ struct OrderSummaryScreen: View {
 
     private func confirmButton(disabled: Bool = false) -> some View {
         Button(action: {
-            // TODO: implement order placement
+            // Show confirmation alert before finalizing
+            showConfirmOrder = true
         }) {
             Text("Confirm")
                 .font(.headline)
@@ -247,28 +275,17 @@ private struct OrderSummaryItemRow: View {
                             Text("\(i)").tag(i)
                         }
                     }
-                    .pickerStyle(MenuPickerStyle())
-                    .frame(width: 60)
-                    .padding(.horizontal, 6)
-                    .background(RoundedRectangle(cornerRadius: 6).stroke(Color.gray.opacity(0.3)))
+                    .pickerStyle(.menu)
 
-                    HStack(spacing: 6) {
-                        if let d = product.discount, d > 0 {
-                            Text(priceString(product.price))
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                                .strikethrough()
-                        }
-                        Text(priceString(product.effectivePrice))
-                            .font(.subheadline)
-                            .fontWeight(.bold)
-                    }
+                    Spacer()
+
+                    Text(priceString(product.effectivePrice * Double(qty)))
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
                 }
             }
-
-            Spacer()
         }
-        .padding(.vertical, 8) // parent handles horizontal padding
+        .padding(.vertical, 8)
     }
 
     private func priceString(_ value: Double) -> String {

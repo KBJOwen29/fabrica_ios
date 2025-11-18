@@ -79,7 +79,7 @@ final class OrderStore: ObservableObject {
             Order(
                 id: UUID().uuidString,
                 name: p.name,
-                price: p.effectivePrice,          // use effective price (after discount) if available
+                price: p.effectivePrice,          // per-unit effective price
                 quantity: p.quantity,
                 imageName: p.imageURL,
                 rating: nil,

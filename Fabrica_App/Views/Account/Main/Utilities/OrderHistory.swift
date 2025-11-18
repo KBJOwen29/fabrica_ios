@@ -134,3 +134,9 @@ private struct QuantityBadge: View {
         .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.black, lineWidth: 1))
     }
 }
+
+struct OrderHistoryy_Previews: PreviewProvider {
+    static var previews: some View {
+        OrderHistory()
+    }
+}
