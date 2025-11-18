@@ -2,59 +2,73 @@
 //  CartMenuScreen.swift
 //  Fabrica_App
 //
-//  Updated to use CartManager-backed cart items
+//  Created by STUDENT on 10/18/25.
 //
 
 import SwiftUI
 
 struct CartMenuScreen: View {
     @ObservedObject private var cart = CartManager.shared
-    @State private var showConfirmAlert = false
+
+    @State private var showEmptyCartAlert = false
+    @State private var goToOrderSummary = false
+    @State private var selectedItemsForOrder: [CartProduct] = []
+
+    private let containerHPadding: CGFloat = 16
 
     var body: some View {
-        VStack(alignment: .leading) {
-            // Search bar visual
-            HStack {
-                Image(systemName: "magnifyingglass")
-                Text("Search")
-                    .foregroundColor(.secondary)
-                Spacer()
-            }
-            .padding(12)
-            .background(RoundedRectangle(cornerRadius: 22).stroke(Color.gray.opacity(0.4), lineWidth: 1))
-            .padding(.horizontal)
-
-            Text("My Cart")
-                .font(.headline)
-                .padding(.horizontal)
-                .padding(.top, 8)
-
-            if cart.items.isEmpty {
-                VStack {
-                    Spacer()
-                    Text("Your cart is empty")
+        VStack(spacing: 0) {
+            // Header / Search
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Image(systemName: "magnifyingglass")
+                    Text("Search")
                         .foregroundColor(.secondary)
                     Spacer()
                 }
-            } else {
-                ScrollView {
-                    VStack(spacing: 18) {
-                        ForEach(cart.items) { item in
-                            CartItemRow(
-                                product: item,
-                                onToggle: { cart.toggleSelected(id: item.id) },
-                                onUpdateQty: { qty in cart.updateQuantity(id: item.id, quantity: qty) },
-                                onDelete: { cart.delete(id: item.id) }
-                            )
-                        }
+                .padding(12)
+                .background(RoundedRectangle(cornerRadius: 22).stroke(Color.gray.opacity(0.4), lineWidth: 1))
+
+                Text("My Cart")
+                    .font(.headline)
+                    .padding(.top, 4)
+            }
+            .padding(.horizontal, containerHPadding)
+            .padding(.top, 12)
+
+            // Content - anchor to top
+            Group {
+                if cart.items.isEmpty {
+                    VStack {
+                        Spacer(minLength: 28)
+                        Text("Your cart is empty")
+                            .foregroundColor(.secondary)
+                        Spacer(minLength: 28)
                     }
-                    .padding(.top)
+                    .frame(maxWidth: .infinity)
+                } else {
+                    ScrollView {
+                        LazyVStack(alignment: .leading, spacing: 18, pinnedViews: []) {
+                            ForEach(cart.items) { item in
+                                CartItemRow(
+                                    product: item,
+                                    onToggle: { cart.toggleSelected(id: item.id) },
+                                    onUpdateQty: { qty in cart.updateQuantity(id: item.id, quantity: qty) },
+                                    onDelete: { cart.delete(id: item.id) }
+                                )
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                        }
+                        .padding(.top, 8)
+                        .padding(.bottom, 8)
+                    }
                 }
             }
+            .padding(.horizontal, containerHPadding)
+            // Let the ScrollView expand; don't add Spacer() here to avoid extra blank space
+            .frame(maxWidth: .infinity)
 
-            Spacer()
-
-            // Subtotal + Confirm
+            // Footer: subtotal + confirm + bottom tab
             VStack(spacing: 12) {
                 HStack {
                     Text("Subtotal:")
@@ -63,10 +77,23 @@ struct CartMenuScreen: View {
                     Text(priceString(cart.subtotal))
                         .font(.headline)
                 }
-                .padding(.horizontal)
+
+                // NavigationLink trigger
+                NavigationLink(
+                    destination: OrderSummaryScreen(items: selectedItemsForOrder).navigationBarBackButtonHidden(true),
+                    isActive: $goToOrderSummary
+                ) {
+                    EmptyView()
+                }
 
                 Button(action: {
-                    showConfirmAlert = true
+                    let selected = cart.items.filter { $0.selected }
+                    if selected.isEmpty {
+                        showEmptyCartAlert = true
+                    } else {
+                        selectedItemsForOrder = selected
+                        goToOrderSummary = true
+                    }
                 }) {
                     Text("Confirm")
                         .foregroundColor(.white)
@@ -77,51 +104,64 @@ struct CartMenuScreen: View {
                                 .shadow(color: Color.black.opacity(0.2), radius: 6, x: 0, y: 4)
                         )
                 }
-                .padding(.horizontal)
-                .alert(isPresented: $showConfirmAlert) {
-                    Alert(title: Text("Confirm"), message: Text("Proceed to checkout with subtotal \(priceString(cart.subtotal))?"), primaryButton: .default(Text("Yes")), secondaryButton: .cancel())
+                .alert(isPresented: $showEmptyCartAlert) {
+                    Alert(
+                        title: Text("Cart Empty"),
+                        message: Text("There is nothing in the cart. Add items to proceed."),
+                        dismissButton: .default(Text("OK"))
+                    )
                 }
-                .padding(.bottom, 30)
-                
-                VStack {
-                    HStack {
-                        NavigationLink(destination:  MainMenuScreen().navigationBarBackButtonHidden(true)) {
-                                Image(systemName: "house.fill")
-                                    .font(.system(size: 24))
-                                    .foregroundColor(.black) // Black icon color
-                                    .frame(maxWidth: .infinity) // Distribute space equally
-                                    .padding(.vertical, 10)
+
+                // Bottom navigation bar (fixed)
+                HStack(spacing: 0) {
+                    NavigationLink(destination: MainMenuScreen().navigationBarBackButtonHidden(true)) {
+                        VStack {
+                            Image(systemName: "house.fill")
+                                .font(.system(size: 22))
+                            Text("Home")
+                                .font(.caption2)
                         }
-                        Button(action: {
-                            // Empty action for the Home button (won't navigate anywhere)
-                        }) {
-                            Image(systemName: "cart.fill")
-                                .font(.system(size: 24))
-                                .foregroundColor(.black) // Black icon color
-                                .frame(maxWidth: .infinity) // Distribute space equally
-                                .padding(.vertical, 10)
-                        }
-                        NavigationLink(destination:  ProfileMenuScreen().navigationBarBackButtonHidden(true)) {
-                            Image(systemName: "person.fill")
-                                .font(.system(size: 24))
-                                .foregroundColor(.black) // Black icon color
-                                .frame(maxWidth: .infinity) // Distribute space equally
-                                .padding(.vertical, 10)
-                        }
+                        .foregroundColor(.black)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
                     }
-                    .padding(.vertical, 10)
-                    .background(Color.white)
-                    .cornerRadius(30) // Rounded edges for bottom tab
-                    .shadow(radius: 10) // Add shadow for effect
-                    .padding(.horizontal)
+
+                    // Current Cart button: no-op (we're on cart)
+                    Button(action: { }) {
+                        VStack {
+                            Image(systemName: "cart.fill")
+                                .font(.system(size: 22))
+                            Text("Cart")
+                                .font(.caption2)
+                        }
+                        .foregroundColor(.black)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                    }
+
+                    NavigationLink(destination: ProfileMenuScreen().navigationBarBackButtonHidden(true)) {
+                        VStack {
+                            Image(systemName: "person.fill")
+                                .font(.system(size: 22))
+                            Text("Profile")
+                                .font(.caption2)
+                        }
+                        .foregroundColor(.black)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                    }
                 }
+                .background(Color.white)
+                .cornerRadius(22)
+                .shadow(radius: 6)
+                .padding(.top, 6)
             }
-            .padding(.vertical)
+            .padding(.all, containerHPadding)
             .background(Color(UIColor.systemBackground))
-            
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .navigationBarHidden(true)
-        .padding(.bottom, 6)
+        .ignoresSafeArea(.keyboard, edges: .bottom)
     }
 
     private func priceString(_ value: Double) -> String {
@@ -132,7 +172,9 @@ struct CartMenuScreen: View {
     }
 }
 
-// A reusable row view for a cart item that calls back to the manager for changes
+
+// MARK: - CartItemRow (rows provide vertical padding only; parent handles horizontal)
+
 struct CartItemRow: View {
     let product: CartProduct
     let onToggle: () -> Void
@@ -152,7 +194,6 @@ struct CartItemRow: View {
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
-            // Checkbox
             Button(action: onToggle) {
                 Image(systemName: product.selected ? "checkmark.square" : "square")
                     .font(.title2)
@@ -160,7 +201,6 @@ struct CartItemRow: View {
             .buttonStyle(PlainButtonStyle())
             .frame(width: 30)
 
-            // Product image with border
             ZStack {
                 RoundedRectangle(cornerRadius: 8)
                     .stroke(Color.gray.opacity(0.6), lineWidth: 1)
@@ -172,14 +212,12 @@ struct CartItemRow: View {
                         .scaledToFit()
                         .frame(width: 74, height: 74)
                 } else {
-                    // If remote images used, swap for AsyncImage
                     Rectangle()
                         .fill(Color.gray.opacity(0.2))
                         .frame(width: 74, height: 74)
                 }
             }
 
-            // Details
             VStack(alignment: .leading, spacing: 6) {
                 Text(product.name)
                     .font(.subheadline)
@@ -192,40 +230,35 @@ struct CartItemRow: View {
                         .foregroundColor(.green)
                         .fontWeight(.bold)
                 }
+            }
 
-                HStack(spacing: 12) {
-                    // Quantity picker
-                    Picker("", selection: Binding(get: { qty }, set: { newQty in
-                        qty = newQty
-                        onUpdateQty(newQty)
-                    })) {
-                        ForEach(1..<11) { i in
-                            Text("\(i)").tag(i)
-                        }
+            Spacer()
+
+            VStack(alignment: .trailing, spacing: 8) {
+                Picker("", selection: Binding(get: { qty }, set: { newQty in
+                    qty = newQty
+                    onUpdateQty(newQty)
+                })) {
+                    ForEach(1..<11) { i in
+                        Text("\(i)").tag(i)
                     }
-                    .pickerStyle(MenuPickerStyle())
-                    .frame(width: 60)
-                    .padding(.horizontal, 6)
-                    .background(RoundedRectangle(cornerRadius: 6).stroke(Color.gray.opacity(0.3)))
+                }
+                .pickerStyle(MenuPickerStyle())
+                .frame(width: 60)
+                .padding(.horizontal, 6)
+                .background(RoundedRectangle(cornerRadius: 6).stroke(Color.gray.opacity(0.3)))
 
-                    // Prices
+                HStack(spacing: 8) {
                     if let d = product.discount, d > 0 {
                         Text(priceString(product.price))
                             .font(.caption)
                             .foregroundColor(.secondary)
                             .strikethrough()
-                        Text(priceString(product.effectivePrice))
-                            .font(.subheadline)
-                            .fontWeight(.bold)
-                    } else {
-                        Text(priceString(product.effectivePrice))
-                            .font(.subheadline)
-                            .fontWeight(.bold)
                     }
+                    Text(priceString(product.effectivePrice))
+                        .font(.subheadline)
+                        .fontWeight(.bold)
 
-                    Spacer()
-
-                    // Trash with confirmation
                     Button(action: { showDeleteConfirmation = true }) {
                         Image(systemName: "trash")
                             .foregroundColor(.primary)
@@ -241,8 +274,9 @@ struct CartItemRow: View {
                     }
                 }
             }
+            .frame(minWidth: 120)
         }
-        .padding(.horizontal)
+        .padding(.vertical, 6) // parent handles horizontal padding
     }
 
     private func priceString(_ value: Double) -> String {
@@ -255,7 +289,8 @@ struct CartItemRow: View {
 
 struct CartMenuScreen_Previews: PreviewProvider {
     static var previews: some View {
-        // For preview create a temporary manager state if needed
-        CartMenuScreen()
+        NavigationView {
+            CartMenuScreen()
+        }
     }
 }
