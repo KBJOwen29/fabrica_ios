@@ -81,11 +81,6 @@ struct ProfileMenuScreen: View {
                             .foregroundColor(.black)
                     }
                     
-                    // Delivered
-                    NavigationLink(destination: Text("Delivered Screen")) {
-                        ProfileIcon(iconName: "checkmark.circle", label: "Delivered")
-                            .foregroundColor(.black)
-                    }
 
                     // Rates
                     NavigationLink(destination: Text("Rates Screen")) {
@@ -116,6 +111,7 @@ struct ProfileMenuScreen: View {
                         ProfileIcon(iconName: "questionmark.circle", label: "FAQs")
                             .foregroundColor(.black)
                     }
+                    
 
                     // Logout
                     NavigationLink(destination: Text("Logout Screen")) {

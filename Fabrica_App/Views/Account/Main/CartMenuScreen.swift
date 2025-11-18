@@ -76,8 +76,8 @@ struct CartMenuScreen: View {
                                 .fill(Color.black)
                                 .shadow(color: Color.black.opacity(0.2), radius: 6, x: 0, y: 4)
                         )
-                        .padding(.horizontal)
                 }
+                .padding(.horizontal)
                 .alert(isPresented: $showConfirmAlert) {
                     Alert(title: Text("Confirm"), message: Text("Proceed to checkout with subtotal \(priceString(cart.subtotal))?"), primaryButton: .default(Text("Yes")), secondaryButton: .cancel())
                 }
@@ -140,6 +140,7 @@ struct CartItemRow: View {
     let onDelete: () -> Void
 
     @State private var qty: Int
+    @State private var showDeleteConfirmation: Bool = false
 
     init(product: CartProduct, onToggle: @escaping () -> Void, onUpdateQty: @escaping (Int) -> Void, onDelete: @escaping () -> Void) {
         self.product = product
@@ -224,12 +225,20 @@ struct CartItemRow: View {
 
                     Spacer()
 
-                    // Trash
-                    Button(action: onDelete) {
+                    // Trash with confirmation
+                    Button(action: { showDeleteConfirmation = true }) {
                         Image(systemName: "trash")
                             .foregroundColor(.primary)
                     }
                     .buttonStyle(PlainButtonStyle())
+                    .alert(isPresented: $showDeleteConfirmation) {
+                        Alert(
+                            title: Text("Remove Item"),
+                            message: Text("Remove \(product.name) from cart?"),
+                            primaryButton: .destructive(Text("Remove"), action: onDelete),
+                            secondaryButton: .cancel()
+                        )
+                    }
                 }
             }
         }

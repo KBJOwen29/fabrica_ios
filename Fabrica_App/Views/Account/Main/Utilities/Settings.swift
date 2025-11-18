@@ -17,6 +17,9 @@ struct SettingsView: View {
     @ObservedObject private var auth = AuthService.shared
     private let repo = AccountsRepository.shared
 
+    // Single alert controller for the whole screen
+    @State private var activeAlert: SettingsAlert?
+
     var body: some View {
         NavigationView {
             VStack(spacing: 24) {
@@ -42,13 +45,14 @@ struct SettingsView: View {
                         HStack {
                             Spacer()
                             Button("Save") {
-                                guard let user = auth.currentUser else { return }
-                                user.setName(newName: name)
-                                user.setCellphoneNumber(newCellphone: number)
-                                repo.update(user)
-                                auth.updateCurrentUserIfSame(user)
+                                // Show confirmation (do not disable button)
+                                activeAlert = .confirmProfile
                             }
                             .font(.subheadline.bold())
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 14)
+                            .background(RoundedRectangle(cornerRadius: 8).fill(Color(UIColor.systemGray5)))
+                            .foregroundColor(.primary)
                         }
                     }
                     .padding()
@@ -78,12 +82,14 @@ struct SettingsView: View {
                         HStack {
                             Spacer()
                             Button("Save") {
-                                guard let user = auth.currentUser else { return }
-                                user.setPassword(newPassword: password)
-                                repo.update(user)
-                                auth.updateCurrentUserIfSame(user)
+                                // Show confirmation
+                                activeAlert = .confirmPassword
                             }
                             .font(.subheadline.bold())
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 14)
+                            .background(RoundedRectangle(cornerRadius: 8).fill(Color(UIColor.systemGray5)))
+                            .foregroundColor(.primary)
                         }
                     }
                     .padding()
@@ -95,7 +101,7 @@ struct SettingsView: View {
                 
                 // MARK: - Logout Button
                 Button(action: {
-                    auth.signOut()
+                    activeAlert = .confirmLogout
                 }) {
                     VStack {
                         Image(systemName: "arrow.left.to.line")
@@ -103,6 +109,9 @@ struct SettingsView: View {
                         Text("Logout")
                             .font(.subheadline)
                     }
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                    .background(RoundedRectangle(cornerRadius: 10).fill(Color(UIColor.systemGray5)))
                 }
                 .foregroundColor(.primary)
                 
@@ -133,6 +142,90 @@ struct SettingsView: View {
                     password = ""
                 }
             }
+            // Single alert attached high in the view tree so it always presents
+            .alert(item: $activeAlert) { alert in
+                switch alert {
+                case .confirmProfile:
+                    return Alert(
+                        title: Text("Confirm Save"),
+                        message: Text("Save changes to your name and number?"),
+                        primaryButton: .default(Text("Save"), action: performProfileSave),
+                        secondaryButton: .cancel()
+                    )
+                case .confirmPassword:
+                    return Alert(
+                        title: Text("Confirm Save"),
+                        message: Text("Save changes to your password?"),
+                        primaryButton: .default(Text("Save"), action: performPasswordSave),
+                        secondaryButton: .cancel()
+                    )
+                case .confirmLogout:
+                    return Alert(
+                        title: Text("Confirm Logout"),
+                        message: Text("Are you sure you want to log out?"),
+                        primaryButton: .destructive(Text("Logout"), action: performLogout),
+                        secondaryButton: .cancel()
+                    )
+                case .saved(let message):
+                    return Alert(
+                        title: Text("Saved"),
+                        message: Text(message),
+                        dismissButton: .default(Text("OK"))
+                    )
+                }
+            }
+        }
+    }
+    
+    // MARK: - Actions
+    
+    private func performProfileSave() {
+        guard let user = auth.currentUser else {
+            activeAlert = .saved("No signed-in user.")
+            return
+        }
+        user.setName(newName: name)
+        user.setCellphoneNumber(newCellphone: number)
+        repo.update(user)
+        auth.updateCurrentUserIfSame(user)
+        activeAlert = .saved("Your name and number have been saved.")
+    }
+    
+    private func performPasswordSave() {
+        guard let user = auth.currentUser else {
+            activeAlert = .saved("No signed-in user.")
+            return
+        }
+        user.setPassword(newPassword: password)
+        repo.update(user)
+        auth.updateCurrentUserIfSame(user)
+        activeAlert = .saved("Your password has been saved.")
+    }
+    
+    private func performLogout() {
+        auth.signOut()
+        // Optional: clear local fields
+        name = ""
+        number = ""
+        email = ""
+        password = ""
+        activeAlert = .saved("You have been signed out.")
+    }
+}
+
+// A single alert enum so only one .alert modifier is needed
+private enum SettingsAlert: Identifiable {
+    case confirmProfile
+    case confirmPassword
+    case confirmLogout
+    case saved(String)
+    
+    var id: String {
+        switch self {
+        case .confirmProfile: return "confirmProfile"
+        case .confirmPassword: return "confirmPassword"
+        case .confirmLogout: return "confirmLogout"
+        case .saved: return "saved"
         }
     }
 }

@@ -15,19 +15,6 @@ struct MainMenuScreen: View {
     func getRandomOffers(items: [Item], count: Int, hasDiscount: Bool) -> [OfferItemModel] {
         let randomItems = items.shuffled().prefix(count)
         return randomItems.map { item in
-            if hasDiscount {
-                let discount = Int.random(in: 10...50) // Random discount between 10% to 50%
-                let discountedPrice = item.price * (1 - Double(discount) / 100)
-                
-                return OfferItemModel(
-                    imageName: item.imageName,
-                    title: item.name,
-                    originalPrice: "₱\(Int(item.price))", // Original price before discount
-                    discount: "\(discount)% Off", // Random discount
-                    price: "₱\(Int(discountedPrice))", // Discounted price
-                    id: item.id
-                )
-            } else {
                 // For "For You" section, no discount, just show regular price
                 return OfferItemModel(
                     imageName: item.imageName,
@@ -37,18 +24,13 @@ struct MainMenuScreen: View {
                     price: "₱\(Int(item.price))", // Regular price
                     id: item.id
                 )
-            }
         }
     }
 
-    // Get random items for the Limited Offers section (randomize 4 items with discount)
-    var limitedOffers: [OfferItemModel] {
-        return getRandomOffers(items: items, count: 4, hasDiscount: true)
-    }
 
     // Get random items for the "For You" section (randomize 4 items without discount)
     var forYouItems: [OfferItemModel] {
-        return getRandomOffers(items: items, count: 4, hasDiscount: false)
+        return getRandomOffers(items: items, count: 6, hasDiscount: false)
     }
 
     var body: some View {
@@ -88,25 +70,6 @@ struct MainMenuScreen: View {
                             .padding(.horizontal)
                         }
                         
-                        // Limited Offers Section
-                        Text("Limited Offers")
-                            .font(.headline)
-                            .padding(.leading) // Align the title to the left
-                        
-                        // Grid view for limited offers with 2 items per row
-                        LazyVGrid(columns: [
-                            GridItem(.flexible()), // This will create 2 flexible columns
-                            GridItem(.flexible())
-                        ], spacing: 20) {
-                            ForEach(limitedOffers, id: \.id) { offer in
-                                // Wrap the tile in a NavigationLink so the whole tile is tappable
-                                NavigationLink(destination: ProductDetailView(itemID: offer.id)) {
-                                    OfferItem(offer: offer)
-                                }
-                                .buttonStyle(.plain) // Keep tile appearance (no default button styling)
-                            }
-                        }
-                        .padding(.horizontal)
 
                         // "For You" Section
                         Text("For You")
