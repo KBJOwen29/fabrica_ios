@@ -7,6 +7,10 @@ struct ProductDetailView: View {
     @ObservedObject private var cart = CartManager.shared
     @State private var showAddedAlert = false
 
+    // Buy Now -> navigate to OrderSummary with a single-item array
+    @State private var goToOrderSummary = false
+    @State private var selectedItemsForOrder: [CartProduct] = []
+
     // Find the item based on its ID
     var item: Item? {
         return items.first(where: { $0.id == itemID })
@@ -90,7 +94,18 @@ struct ProductDetailView: View {
                     }
 
                     Button(action: {
-                        // Action for buy now (left as-is)
+                        // Build a CartProduct for a one-off checkout and navigate to OrderSummary
+                        let cp = CartProduct(
+                            id: item.id,
+                            name: item.name,
+                            price: item.price,
+                            quantity: 1,
+                            imageURL: item.imageName,
+                            selected: true,
+                            discount: nil
+                        )
+                        selectedItemsForOrder = [cp]
+                        goToOrderSummary = true
                     }) {
                         Text("Buy Now")
                             .frame(maxWidth: .infinity)
@@ -102,6 +117,15 @@ struct ProductDetailView: View {
                 }
                 .padding(.horizontal)
                 .padding(.top)
+
+                // Hidden navigation trigger to Order Summary
+                NavigationLink(
+                    destination: OrderSummaryScreen(items: selectedItemsForOrder)
+                        .navigationBarBackButtonHidden(true),
+                    isActive: $goToOrderSummary
+                ) {
+                    EmptyView()
+                }
             } else {
                 // If item is not found
                 Text("Product not found")
