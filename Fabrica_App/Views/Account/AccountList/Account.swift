@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 
 // Class representing a User with encapsulated properties
 public class Account {
@@ -8,6 +9,9 @@ public class Account {
     private var name: String?
     private var cellphoneNumber: String?
     private var wallet: Double
+    
+    // NEW: Raw image data for profile photo (optional)
+    private var profileImageData: Data?
     
     // Public initializer to create a new User instance with only email and password
     public init(email: String, password: String) {
@@ -21,51 +25,39 @@ public class Account {
         return Account(email: "jimowen@gmail.com", password: "admin123")  // You can change these values
     }
     
-    // Methods to access and update each property
-    
     // Email
-    public func getEmail() -> String {
-        return email
-    }
-    
-    public func setEmail(newEmail: String) {
-        email = newEmail
-    }
+    public func getEmail() -> String { email }
+    public func setEmail(newEmail: String) { email = newEmail }
     
     // Password
-    public func getPassword() -> String {
-        return password
-    }
-    
-    public func setPassword(newPassword: String) {
-        password = newPassword
-    }
+    public func getPassword() -> String { password }
+    public func setPassword(newPassword: String) { password = newPassword }
     
     // Name
-    public func getName() -> String? {
-        return name
-    }
-    
-    public func setName(newName: String?) {
-        name = newName
-    }
+    public func getName() -> String? { name }
+    public func setName(newName: String?) { name = newName }
     
     // Cellphone Number
-    public func getCellphoneNumber() -> String? {
-        return cellphoneNumber
-    }
-    
-    public func setCellphoneNumber(newCellphone: String?) {
-        cellphoneNumber = newCellphone
-    }
+    public func getCellphoneNumber() -> String? { cellphoneNumber }
+    public func setCellphoneNumber(newCellphone: String?) { cellphoneNumber = newCellphone }
     
     // Wallet
-    public func getWalletBalance() -> Double {
-        return wallet
+    public func getWalletBalance() -> Double { wallet }
+    public func setWalletBalance(newWalletBalance: Double) { wallet = newWalletBalance }
+    
+    // Profile Image (Data)
+    public func setProfileImage(data: Data?) {
+        profileImageData = data
     }
     
-    public func setWalletBalance(newWalletBalance: Double) {
-        wallet = newWalletBalance
+    public func getProfileImageData() -> Data? {
+        profileImageData
+    }
+    
+    // Convenience: UIImage for SwiftUI Image(uiImage:)
+    public func getProfileUIImage() -> UIImage? {
+        guard let d = profileImageData else { return nil }
+        return UIImage(data: d)
     }
     
     // Public method to add funds to the wallet
@@ -94,8 +86,3 @@ public class Account {
         return inputPassword == password
     }
 }
-
-// - Shared accounts repository -------------------------------------------------
-// A small singleton repository so multiple screens can read/add accounts without
-// having to thread bindings through every NavigationLink. This preserves current
-// function signatures but lets SigninScreen fall back to this shared store.

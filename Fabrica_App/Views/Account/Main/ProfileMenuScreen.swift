@@ -20,15 +20,12 @@ struct ProfileMenuScreen: View {
         NavigationView {
             VStack(spacing: 20) {
                 // Profile Section
-                HStack(alignment: .top, spacing: 10) {
-                    // Profile Picture (fixed top-left)
-                    Image("ProfileImageJim")
-                        .resizable()
-                        .scaledToFit()
+                HStack(alignment: .top, spacing: 16) {
+                    // Dynamic Profile Image or default icon
+                    profileImageView
                         .frame(width: 100, height: 100)
-                        .clipShape(Circle())
-                        .padding(.bottom, 10)
                         .padding(.top, 20)
+                        .padding(.bottom, 10)
 
                     Spacer()
 
@@ -72,37 +69,26 @@ struct ProfileMenuScreen: View {
                 // Icon Grid Section
                 // Converted from a 3-column grid to a 2-column grid (2 x N)
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 20) {
-                    // Orders -> Order History screen
                     NavigationLink(destination: OrderHistory().environmentObject(orderStore)) {
                         ProfileIcon(iconName: "bag", label: "Orders")
                             .foregroundColor(.black)
                     }
-
-                    // Wallet
                     NavigationLink(destination: CashInView()) {
                         ProfileIcon(iconName: "creditcard", label: "Wallet")
                             .foregroundColor(.black)
                     }
-
-                    // Address
                     NavigationLink(destination: AddressList()) {
                         ProfileIcon(iconName: "map", label: "Address")
                             .foregroundColor(.black)
                     }
-
-                    // Settings
                     NavigationLink(destination: SettingsView()) {
                         ProfileIcon(iconName: "gear", label: "Settings")
                             .foregroundColor(.black)
                     }
-
-                    // FAQs
                     NavigationLink(destination: FAQsView()) {
                         ProfileIcon(iconName: "questionmark.circle", label: "FAQs")
                             .foregroundColor(.black)
                     }
-
-                    // Logout (now functional)
                     Button {
                         showLogoutConfirm = true
                     } label: {
@@ -170,6 +156,26 @@ struct ProfileMenuScreen: View {
         fmt.numberStyle = .decimal
         fmt.maximumFractionDigits = 0
         return fmt.string(from: NSNumber(value: value)) ?? "0"
+    }
+
+    @ViewBuilder
+    private var profileImageView: some View {
+        if let img = auth.currentUser?.getProfileUIImage() {
+            Image(uiImage: img)
+                .resizable()
+                .scaledToFill()
+                .clipShape(Circle())
+                .overlay(Circle().stroke(Color.gray.opacity(0.3), lineWidth: 2))
+                .shadow(radius: 4)
+        } else {
+            Image(systemName: "person.crop.circle.fill")
+                .resizable()
+                .scaledToFit()
+                .foregroundColor(.gray.opacity(0.6))
+                .clipShape(Circle())
+                .overlay(Circle().stroke(Color.gray.opacity(0.3), lineWidth: 2))
+                .shadow(radius: 2)
+        }
     }
 }
 

@@ -14,6 +14,7 @@ private struct AccountDTO: Codable {
     let name: String?
     let cellphoneNumber: String?
     let wallet: Double
+    let profileImageBase64: String? // NEW
 }
 
 final class AccountStorageService {
@@ -35,6 +36,10 @@ final class AccountStorageService {
             acc.setName(newName: dto.name)
             acc.setCellphoneNumber(newCellphone: dto.cellphoneNumber)
             acc.setWalletBalance(newWalletBalance: dto.wallet)
+            if let b64 = dto.profileImageBase64,
+               let imgData = Data(base64Encoded: b64) {
+                acc.setProfileImage(data: imgData)
+            }
             return acc
         }
     }
@@ -47,7 +52,8 @@ final class AccountStorageService {
                 password: acc.getPassword(),
                 name: acc.getName(),
                 cellphoneNumber: acc.getCellphoneNumber(),
-                wallet: acc.getWalletBalance()
+                wallet: acc.getWalletBalance(),
+                profileImageBase64: acc.getProfileImageData()?.base64EncodedString()
             )
         }
         if let data = try? JSONEncoder().encode(dtos) {
