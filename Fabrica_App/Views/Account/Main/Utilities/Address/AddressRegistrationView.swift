@@ -163,6 +163,8 @@ struct AddressRegistrationView: View {
         #endif
 
         onSaved?()
+        // Important: this only dismisses the AddressRegistrationView sheet,
+        // returning to AddressList. It does NOT pop to any other root screen.
         dismiss()
     }
 }

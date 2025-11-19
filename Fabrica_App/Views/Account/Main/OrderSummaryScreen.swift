@@ -115,7 +115,8 @@ struct OrderSummaryScreen: View {
         }
         .alert("Order Placed", isPresented: $showOrderSuccess) {
             Button("OK", role: .cancel) {
-                // goToOrderHistory = true // optional navigation
+                // Optionally navigate to history:
+                // goToOrderHistory = true
             }
         } message: {
             Text("Payment successful. Your order has been placed.")
@@ -125,6 +126,7 @@ struct OrderSummaryScreen: View {
         } message: {
             Text("Please sign in to place an order.")
         }
+        // Present AddressList as a sheet so it returns to this screen after selection
         .sheet(isPresented: $showingAddressSheet, onDismiss: {
             reloadAddress()
         }) {
@@ -193,6 +195,7 @@ struct OrderSummaryScreen: View {
             Spacer()
 
             Button("Change") {
+                // Show AddressList in a sheet (does not reset navigation stack)
                 showingAddressSheet = true
             }
             .font(.subheadline)
@@ -306,7 +309,8 @@ struct OrderSummaryScreen: View {
 
         // Require address selection
         guard activeAddress != nil else {
-            // Could also show a dedicated alert
+            // Prompt to choose an address if desired
+            showingAddressSheet = true
             return
         }
 
@@ -318,10 +322,14 @@ struct OrderSummaryScreen: View {
             repo.update(user)
             auth.updateCurrentUserIfSame(user)
 
-            // Optional: record order (not implemented here)
+            // Persist purchased items to OrderStore (per signed-in account)
+            OrderStore.shared.addOrdersForCurrentUser(from: selectedItems)
+
+            // Clear purchased items from cart
             for item in selectedItems {
                 cart.delete(id: item.id)
             }
+
             showOrderSuccess = true
         } else {
             showInsufficientFunds = true
@@ -359,8 +367,6 @@ struct OrderSummaryScreen: View {
         if let notes = entry.notes {
             lines.append(notes)
         }
-        // Optionally append user name/phone if available:
-        // if let user = auth.currentUser { lines.append(user.fullName); lines.append(user.phone) }
         return lines.joined(separator: "\n")
     }
 }

@@ -11,6 +11,8 @@ struct CartMenuScreen: View {
     @ObservedObject private var cart = CartManager.shared
 
     @State private var showEmptyCartAlert = false
+    @State private var showNoAddressAlert = false
+    @State private var showAddressSheet = false
     @State private var goToOrderSummary = false
     @State private var selectedItemsForOrder: [CartProduct] = []
 
@@ -36,7 +38,7 @@ struct CartMenuScreen: View {
             .padding(.horizontal, containerHPadding)
             .padding(.top, 12)
 
-            // Content - anchor to top
+            // Content
             Group {
                 if cart.items.isEmpty {
                     VStack {
@@ -48,7 +50,7 @@ struct CartMenuScreen: View {
                     .frame(maxWidth: .infinity)
                 } else {
                     ScrollView {
-                        LazyVStack(alignment: .leading, spacing: 18, pinnedViews: []) {
+                        LazyVStack(alignment: .leading, spacing: 18) {
                             ForEach(cart.items) { item in
                                 CartItemRow(
                                     product: item,
@@ -65,7 +67,6 @@ struct CartMenuScreen: View {
                 }
             }
             .padding(.horizontal, containerHPadding)
-            // Let the ScrollView expand; don't add Spacer() here to avoid extra blank space
             .frame(maxWidth: .infinity)
 
             // Footer: subtotal + confirm + bottom tab
@@ -87,13 +88,24 @@ struct CartMenuScreen: View {
                 }
 
                 Button(action: {
+                    // 1) Ensure items selected
                     let selected = cart.items.filter { $0.selected }
                     if selected.isEmpty {
                         showEmptyCartAlert = true
-                    } else {
-                        selectedItemsForOrder = selected
-                        goToOrderSummary = true
+                        return
                     }
+
+                    // 2) Ensure an address is registered for the account (or guest)
+                    let owner = AddressViewModel.storageOwnerEmail()
+                    let hasAnyAddress = !AddressViewModel.loadAddresses(for: owner).isEmpty
+                    if !hasAnyAddress {
+                        showNoAddressAlert = true
+                        return
+                    }
+
+                    // 3) Proceed to order summary
+                    selectedItemsForOrder = selected
+                    goToOrderSummary = true
                 }) {
                     Text("Confirm")
                         .foregroundColor(.white)
@@ -104,64 +116,73 @@ struct CartMenuScreen: View {
                                 .shadow(color: Color.black.opacity(0.2), radius: 6, x: 0, y: 4)
                         )
                 }
-                .alert(isPresented: $showEmptyCartAlert) {
-                    Alert(
-                        title: Text("Cart Empty"),
-                        message: Text("There is nothing in the cart. Add items to proceed."),
-                        dismissButton: .default(Text("OK"))
-                    )
-                }
-
-                // Bottom navigation bar (fixed)
-                HStack(spacing: 0) {
-                    NavigationLink(destination: MainMenuScreen().navigationBarBackButtonHidden(true)) {
-                        VStack {
-                            Image(systemName: "house.fill")
-                                .font(.system(size: 22))
-                            Text("Home")
-                                .font(.caption2)
-                        }
-                        .foregroundColor(.black)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                    }
-
-                    // Current Cart button: no-op (we're on cart)
-                    Button(action: { }) {
-                        VStack {
-                            Image(systemName: "cart.fill")
-                                .font(.system(size: 22))
-                            Text("Cart")
-                                .font(.caption2)
-                        }
-                        .foregroundColor(.black)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                    }
-
-                    NavigationLink(destination: ProfileMenuScreen().navigationBarBackButtonHidden(true)) {
-                        VStack {
-                            Image(systemName: "person.fill")
-                                .font(.system(size: 22))
-                            Text("Profile")
-                                .font(.caption2)
-                        }
-                        .foregroundColor(.black)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                    }
-                }
-                .background(Color.white)
-                .cornerRadius(22)
-                .shadow(radius: 6)
-                .padding(.top, 6)
             }
-            .padding(.all, containerHPadding)
-            .background(Color(UIColor.systemBackground))
+            .padding(.horizontal, containerHPadding)
+            .padding(.vertical, 12)
+            .alert(isPresented: $showEmptyCartAlert) {
+                Alert(
+                    title: Text("Cart Empty"),
+                    message: Text("There is nothing in the cart. Add items to proceed."),
+                    dismissButton: .default(Text("OK"))
+                )
+            }
+            .alert(isPresented: $showNoAddressAlert) {
+                Alert(
+                    title: Text("No Address Registered"),
+                    message: Text("Please add an address before proceeding to checkout."),
+                    primaryButton: .default(Text("Add Address")) {
+                        showAddressSheet = true
+                    },
+                    secondaryButton: .cancel(Text("Later"))
+                )
+            }
+            .sheet(isPresented: $showAddressSheet) {
+                // Present as a sheet so the user stays in the current flow
+                AddressList()
+            }
+
+            // Bottom navigation bar (fixed)
+            HStack(spacing: 0) {
+                NavigationLink(destination: MainMenuScreen().navigationBarBackButtonHidden(true)) {
+                    VStack {
+                        Image(systemName: "house.fill")
+                            .font(.system(size: 22))
+                        Text("Home")
+                            .font(.caption2)
+                    }
+                    .foregroundColor(.black)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                }
+
+                // Current Cart button: no-op (we're on cart)
+                Button(action: { }) {
+                    VStack {
+                        Image(systemName: "cart.fill")
+                            .font(.system(size: 22))
+                        Text("Cart")
+                            .font(.caption2)
+                    }
+                    .foregroundColor(.black)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                }
+
+                NavigationLink(destination: ProfileMenuScreen().navigationBarBackButtonHidden(true)) {
+                    VStack {
+                        Image(systemName: "person.fill")
+                            .font(.system(size: 22))
+                        Text("Profile")
+                            .font(.caption2)
+                    }
+                    .foregroundColor(.black)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                }
+            }
+            .background(Color(.systemGray6))
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .navigationBarHidden(true)
-        .ignoresSafeArea(.keyboard, edges: .bottom)
+        .navigationBarTitleDisplayMode(.inline)
     }
 
     private func priceString(_ value: Double) -> String {
@@ -172,9 +193,7 @@ struct CartMenuScreen: View {
     }
 }
 
-
-// MARK: - CartItemRow (rows provide vertical padding only; parent handles horizontal)
-
+// MARK: - CartItemRow
 struct CartItemRow: View {
     let product: CartProduct
     let onToggle: () -> Void
@@ -196,25 +215,23 @@ struct CartItemRow: View {
         HStack(alignment: .center, spacing: 12) {
             Button(action: onToggle) {
                 Image(systemName: product.selected ? "checkmark.square" : "square")
-                    .font(.title2)
+                    .font(.system(size: 22))
             }
-            .buttonStyle(PlainButtonStyle())
-            .frame(width: 30)
 
             ZStack {
                 RoundedRectangle(cornerRadius: 8)
                     .stroke(Color.gray.opacity(0.6), lineWidth: 1)
-                    .frame(width: 84, height: 84)
+                    .frame(width: 70, height: 70)
 
                 if let img = product.imageURL, !img.isEmpty, UIImage(named: img) != nil {
                     Image(img)
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 74, height: 74)
+                        .frame(width: 62, height: 62)
                 } else {
                     Rectangle()
                         .fill(Color.gray.opacity(0.2))
-                        .frame(width: 74, height: 74)
+                        .frame(width: 62, height: 62)
                 }
             }
 
@@ -224,10 +241,15 @@ struct CartItemRow: View {
                     .fontWeight(.semibold)
                     .lineLimit(2)
 
-                if let discount = product.discount, discount > 0 {
-                    Text("\(Int(discount * 100))% Off")
-                        .font(.caption)
-                        .foregroundColor(.green)
+                HStack(spacing: 8) {
+                    if let d = product.discount, d > 0 {
+                        Text(priceString(product.price))
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .strikethrough()
+                    }
+                    Text(priceString(product.effectivePrice))
+                        .font(.subheadline)
                         .fontWeight(.bold)
                 }
             }
@@ -248,35 +270,22 @@ struct CartItemRow: View {
                 .padding(.horizontal, 6)
                 .background(RoundedRectangle(cornerRadius: 6).stroke(Color.gray.opacity(0.3)))
 
-                HStack(spacing: 8) {
-                    if let d = product.discount, d > 0 {
-                        Text(priceString(product.price))
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .strikethrough()
-                    }
-                    Text(priceString(product.effectivePrice))
-                        .font(.subheadline)
-                        .fontWeight(.bold)
-
-                    Button(action: { showDeleteConfirmation = true }) {
-                        Image(systemName: "trash")
-                            .foregroundColor(.primary)
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                    .alert(isPresented: $showDeleteConfirmation) {
-                        Alert(
-                            title: Text("Remove Item"),
-                            message: Text("Remove \(product.name) from cart?"),
-                            primaryButton: .destructive(Text("Remove"), action: onDelete),
-                            secondaryButton: .cancel()
-                        )
-                    }
+                Button(action: { showDeleteConfirmation = true }) {
+                    Image(systemName: "trash")
+                        .foregroundColor(.primary)
+                }
+                .buttonStyle(PlainButtonStyle())
+                .alert(isPresented: $showDeleteConfirmation) {
+                    Alert(
+                        title: Text("Remove Item"),
+                        message: Text("Remove \(product.name) from cart?"),
+                        primaryButton: .destructive(Text("Remove"), action: onDelete),
+                        secondaryButton: .cancel()
+                    )
                 }
             }
-            .frame(minWidth: 120)
         }
-        .padding(.vertical, 6) // parent handles horizontal padding
+        .padding(.vertical, 6)
     }
 
     private func priceString(_ value: Double) -> String {

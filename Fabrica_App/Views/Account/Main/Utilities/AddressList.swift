@@ -79,6 +79,7 @@ struct AddressList: View {
             reload()
         }
         .sheet(isPresented: $showingAddSheet, onDismiss: {
+            // After saving, we stay on AddressList (this sheet dismisses and returns here)
             reload()
         }) {
             AddressRegistrationView(onSaved: {
@@ -110,7 +111,7 @@ struct AddressList: View {
                 Button {
                     AddressViewModel.selectAddress(addr)
                     onSelect(addr)
-                    dismiss()
+                    dismiss() // Close the AddressList sheet and return to caller (e.g., OrderSummary)
                 } label: {
                     content
                 }
