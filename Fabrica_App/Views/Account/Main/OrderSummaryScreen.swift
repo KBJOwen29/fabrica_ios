@@ -5,7 +5,6 @@
 //  Created by STUDENT on 11/18/25.
 //
 
-
 import SwiftUI
 
 struct OrderSummaryScreen: View {
@@ -180,8 +179,8 @@ struct OrderSummaryScreen: View {
                     // Transfer items to Order History for current user
                     OrderStore.shared.addOrdersForCurrentUser(from: selectedItems)
 
-                    // Optional: clear or unselect cart items here if desired
-                    // selectedItems.forEach { cart.remove(id: $0.id) }
+                    // Remove ordered items from cart
+                    selectedItems.forEach { cart.delete(id: $0.id) }
 
                     // Navigate to Order History
                     goToOrderHistory = true

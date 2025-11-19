@@ -10,74 +10,264 @@ struct OfferItemModel {
     let id: String // Now including the item ID
 }
 
+// CATEGORY SCREEN (altered to show full image)
+struct CategoryScreen: View {
+    let category: String
+    
+    // Filter items by category (case-insensitive)
+    private var filteredItems: [Item] {
+        items.filter { $0.category.lowercased() == category.lowercased() }
+    }
+    
+    private let columns = [
+        GridItem(.flexible(), spacing: 16),
+        GridItem(.flexible(), spacing: 16)
+    ]
+    
+    var body: some View {
+        VStack {
+            // Top pill
+            Text(category)
+                .font(.system(size: 18, weight: .semibold))
+                .padding(.vertical, 10)
+                .padding(.horizontal, 24)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 22)
+                        .stroke(Color.primary, lineWidth: 1)
+                )
+                .padding(.top, 12)
+            
+            if filteredItems.isEmpty {
+                Text("No items found in \(category)")
+                    .foregroundColor(.secondary)
+                    .padding(.top, 40)
+                Spacer()
+            } else {
+                ScrollView {
+                    LazyVGrid(columns: columns, spacing: 20) {
+                        ForEach(filteredItems, id: \.id) { item in
+                            NavigationLink(destination: ProductDetailView(itemID: item.id)) {
+                                VStack(alignment: .leading, spacing: 10) {
+                                    // FULL IMAGE (no cropping, aspect fit)
+                                    Group {
+                                        if UIImage(named: item.imageName) != nil {
+                                            Image(item.imageName)
+                                                .resizable()
+                                                .scaledToFit()      // show full image
+                                                .frame(maxWidth: .infinity)
+                                                .frame(height: 140) // adjust height as desired
+                                                .background(Color.gray.opacity(0.12))
+                                                .cornerRadius(10)
+                                        } else {
+                                            Rectangle()
+                                                .fill(Color.gray.opacity(0.15))
+                                                .frame(height: 140)
+                                                .cornerRadius(10)
+                                        }
+                                    }
+                                    
+                                    Text(item.name)
+                                        .font(.subheadline)
+                                        .lineLimit(2)
+                                    
+                                    Text("₱\(Int(item.price))")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                                .padding(12)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(Color.gray.opacity(0.35), lineWidth: 1)
+                                )
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.top, 22)
+                }
+            }
+        }
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+// DEDICATED SEARCH SCREEN
+struct SearchScreen: View {
+    @State private var query: String = ""
+    
+    // Live filtered items (matches on name, category, color, size, or type)
+    private var filtered: [Item] {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return items }
+        return items.filter {
+            let q = trimmed.lowercased()
+            return $0.name.lowercased().contains(q)
+                || $0.category.lowercased().contains(q)
+                || $0.color.lowercased().contains(q)
+                || $0.size.lowercased().contains(q)
+                || $0.type.lowercased().contains(q)
+        }
+    }
+    
+    private let columns = [
+        GridItem(.flexible(), spacing: 16),
+        GridItem(.flexible(), spacing: 16)
+    ]
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Search bar pinned at top
+            HStack {
+                Image(systemName: "magnifyingglass")
+                    .foregroundColor(.gray)
+                TextField("Search products, categories...", text: $query)
+                    .textInputAutocapitalization(.never)
+                    .disableAutocorrection(true)
+                if !query.isEmpty {
+                    Button {
+                        query = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(.gray)
+                    }
+                }
+            }
+            .padding(12)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color.gray.opacity(0.4), lineWidth: 1)
+            )
+            .padding(.horizontal, 14)
+            .padding(.top, 14)
+            
+            if filtered.isEmpty {
+                Spacer()
+                Text("No results")
+                    .foregroundColor(.secondary)
+                Spacer()
+            } else {
+                ScrollView {
+                    LazyVGrid(columns: columns, spacing: 20) {
+                        ForEach(filtered, id: \.id) { item in
+                            NavigationLink(destination: ProductDetailView(itemID: item.id)) {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Group {
+                                        if UIImage(named: item.imageName) != nil {
+                                            Image(item.imageName)
+                                                .resizable()
+                                                .scaledToFit()
+                                                .frame(maxWidth: .infinity)
+                                                .frame(height: 120)
+                                                .background(Color.gray.opacity(0.12))
+                                                .cornerRadius(10)
+                                        } else {
+                                            Rectangle()
+                                                .fill(Color.gray.opacity(0.15))
+                                                .frame(height: 120)
+                                                .cornerRadius(10)
+                                        }
+                                    }
+                                    
+                                    Text(item.name)
+                                        .font(.subheadline)
+                                        .lineLimit(2)
+                                    
+                                    Text("₱\(Int(item.price))")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                                .padding(12)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                                )
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.top, 20)
+                    .padding(.bottom, 20)
+                }
+            }
+        }
+        .navigationTitle("Search")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
 struct MainMenuScreen: View {
-    // Randomize function to get random items and random discount for "Limited Offers"
+    // Randomize function to get random items for "For You"
     func getRandomOffers(items: [Item], count: Int, hasDiscount: Bool) -> [OfferItemModel] {
         let randomItems = items.shuffled().prefix(count)
         return randomItems.map { item in
-                // For "For You" section, no discount, just show regular price
-                return OfferItemModel(
-                    imageName: item.imageName,
-                    title: item.name,
-                    originalPrice: "₱\(Int(item.price))", // Regular price
-                    discount: nil, // No discount
-                    price: "₱\(Int(item.price))", // Regular price
-                    id: item.id
-                )
+            OfferItemModel(
+                imageName: item.imageName,
+                title: item.name,
+                originalPrice: "₱\(Int(item.price))",
+                discount: nil,
+                price: "₱\(Int(item.price))",
+                id: item.id
+            )
         }
     }
-
-
-    // Get random items for the "For You" section (randomize 4 items without discount)
+    
     var forYouItems: [OfferItemModel] {
-        return getRandomOffers(items: items, count: 6, hasDiscount: false)
+        getRandomOffers(items: items, count: 6, hasDiscount: false)
     }
-
+    
     var body: some View {
-        NavigationView { // Wrap in a NavigationView for navigation links
+        NavigationView {
             ZStack {
-                ScrollView { // Scrollable content section
+                ScrollView {
                     VStack(spacing: 20) {
-                        // Search Bar Section (Moved to the top)
-                        HStack {
-                            TextField("Search", text: .constant("")) // Bind the search text if needed
-                                .padding()
-                                .background(RoundedRectangle(cornerRadius: 10).stroke(Color.gray, lineWidth: 1))
-                                .padding(.top, 40)
-                                .padding(.horizontal)
+                        // SEARCH BAR (converted into a NavigationLink to SearchScreen)
+                        NavigationLink(destination: SearchScreen()) {
+                            HStack {
+                                Image(systemName: "magnifyingglass")
+                                    .foregroundColor(.gray)
+                                Text("Search products, categories...")
+                                    .foregroundColor(.gray)
+                                Spacer()
+                            }
+                            .padding()
+                            .background(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .stroke(Color.gray, lineWidth: 1)
+                            )
                         }
-
-                        // Categories Section
+                        .padding(.top, 40)
+                        .padding(.horizontal)
+                        
+                        // Categories
                         Text("Categories")
                             .font(.headline)
-                            .padding(.leading) // Align the title to the left
+                            .padding(.leading)
                         
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 20) {
-                                NavigationLink(destination: Text("Men Category")) {
-                                    CategoryItem(name: "Men", imageName: "Men") // Change to your image name
+                                NavigationLink(destination: CategoryScreen(category: "Men")) {
+                                    CategoryItem(name: "Men", imageName: "Men")
                                 }
-                                NavigationLink(destination: Text("Women Category")) {
-                                    CategoryItem(name: "Women", imageName: "women") // Change to your image name
+                                NavigationLink(destination: CategoryScreen(category: "Women")) {
+                                    CategoryItem(name: "Women", imageName: "women")
                                 }
-                                NavigationLink(destination: Text("Shoes Category")) {
-                                    CategoryItem(name: "Shoes", imageName: "shoes") // Change to your image name
+                                NavigationLink(destination: CategoryScreen(category: "Shoes")) {
+                                    CategoryItem(name: "Shoes", imageName: "shoes")
                                 }
-                                NavigationLink(destination: Text("Caps Category")) {
-                                    CategoryItem(name: "Caps", imageName: "caps") // Change to your image name
+                                NavigationLink(destination: CategoryScreen(category: "Cap")) {
+                                    CategoryItem(name: "Caps", imageName: "caps")
                                 }
                             }
                             .padding(.horizontal)
                         }
                         
-
-                        // "For You" Section
+                        // For You
                         Text("For You")
                             .font(.headline)
-                            .padding(.leading) // Align the title to the left
+                            .padding(.leading)
                         
                         LazyVGrid(columns: [
-                            GridItem(.flexible()), // This will create 2 flexible columns
+                            GridItem(.flexible()),
                             GridItem(.flexible())
                         ], spacing: 20) {
                             ForEach(forYouItems, id: \.id) { offer in
@@ -91,41 +281,39 @@ struct MainMenuScreen: View {
                         
                         Spacer()
                     }
-                    .padding(.bottom, 100) // Space for the fixed bottom tab
+                    .padding(.bottom, 100)
                 }
-
-                // Fixed Bottom Navigation Bar with 4 icons (No search icon here anymore)
+                
+                // Bottom navigation bar
                 VStack {
                     Spacer()
                     HStack {
-                        Button(action: {
-                            // Empty action for the Home button (won't navigate anywhere)
-                        }) {
+                        Button(action: {}) {
                             Image(systemName: "house.fill")
                                 .font(.system(size: 24))
-                                .foregroundColor(.black) // Black icon color
-                                .frame(maxWidth: .infinity) // Distribute space equally
+                                .foregroundColor(.black)
+                                .frame(maxWidth: .infinity)
                                 .padding(.vertical, 10)
                         }
                         NavigationLink(destination: CartMenuScreen().navigationBarBackButtonHidden(true)) {
                             Image(systemName: "cart.fill")
                                 .font(.system(size: 24))
-                                .foregroundColor(.black) // Black icon color
-                                .frame(maxWidth: .infinity) // Distribute space equally
+                                .foregroundColor(.black)
+                                .frame(maxWidth: .infinity)
                                 .padding(.vertical, 10)
                         }
-                        NavigationLink(destination:  ProfileMenuScreen().navigationBarBackButtonHidden(true)) {
+                        NavigationLink(destination: ProfileMenuScreen().navigationBarBackButtonHidden(true)) {
                             Image(systemName: "person.fill")
                                 .font(.system(size: 24))
-                                .foregroundColor(.black) // Black icon color
-                                .frame(maxWidth: .infinity) // Distribute space equally
+                                .foregroundColor(.black)
+                                .frame(maxWidth: .infinity)
                                 .padding(.vertical, 10)
                         }
                     }
                     .padding(.vertical, 10)
                     .background(Color.white)
-                    .cornerRadius(30) // Rounded edges for bottom tab
-                    .shadow(radius: 10) // Add shadow for effect
+                    .cornerRadius(30)
+                    .shadow(radius: 10)
                     .padding(.horizontal)
                 }
             }
@@ -134,14 +322,14 @@ struct MainMenuScreen: View {
     }
 }
 
-// MARK: - CategoryItem (unchanged)
+// MARK: - CategoryItem (unchanged visual component)
 struct CategoryItem: View {
     let name: String
     let imageName: String
     
     var body: some View {
         VStack {
-            Image(imageName) // Load image from assets
+            Image(imageName)
                 .resizable()
                 .frame(width: 50, height: 50)
                 .scaledToFit()
@@ -156,20 +344,21 @@ struct CategoryItem: View {
     }
 }
 
-// MARK: - OfferItem (visual only, no navigation logic here)
+// MARK: - OfferItem (visual only)
 struct OfferItem: View {
     let offer: OfferItemModel
     
     var body: some View {
         VStack(alignment: .leading) {
-            // Image centered at the top
-            Image(offer.imageName) // Load image from assets
+            Image(offer.imageName)
                 .resizable()
-                .scaledToFit() // Ensures the aspect ratio is maintained
-                .frame(width: 90, height: 90) // Make the image smaller
-                .padding(.top, 10) // Padding to keep the image from sticking to the top edge
-                .frame(maxWidth: .infinity) // Center image horizontally
-
+                .scaledToFit()
+                .frame(width: 110, height: 110)
+                .padding(.top, 8)
+                .frame(maxWidth: .infinity)
+                .background(Color.gray.opacity(0.1))
+                .cornerRadius(10)
+            
             VStack(alignment: .leading) {
                 Text(offer.title)
                     .bold()
@@ -183,25 +372,25 @@ struct OfferItem: View {
                 }
                 
                 if offer.discount != nil {
-                    Text(offer.originalPrice) // Original price with strikethrough
+                    Text(offer.originalPrice)
                         .strikethrough()
                         .foregroundColor(.gray)
                         .font(.caption)
                 }
                 
-                Text(offer.price) // Price (discounted or regular)
+                Text(offer.price)
                     .bold()
-                    .font(.title2)
+                    .font(.title3)
                     .foregroundColor(.black)
             }
-            .padding(.top, 5)
-            .padding(.horizontal)
+            .padding(.top, 4)
+            .padding(.horizontal, 6)
             
             Spacer()
         }
-        .frame(width: 150, height: 230) // Adjust size for each offer item
-        .padding(5)
-        .background(RoundedRectangle(cornerRadius: 15).stroke(Color.gray, lineWidth: 1))
+        .frame(width: 160, height: 250)
+        .padding(6)
+        .background(RoundedRectangle(cornerRadius: 15).stroke(Color.gray.opacity(0.5), lineWidth: 1))
     }
 }
 

@@ -2,12 +2,8 @@
 //  ProfileMenuScreen.swift
 //  Fabrica_App
 //
-//  Updated to:
-//  - Use a 2-column grid layout (2 x N)
-//  - Link Orders -> OrderHistoryScreen
-//  - Link Rates  -> RatedOrdersScreen
+//  Created by STUDENT on 10/11/25.
 //
-
 import SwiftUI
 
 struct ProfileMenuScreen: View {
@@ -15,6 +11,10 @@ struct ProfileMenuScreen: View {
     @ObservedObject private var auth = AuthService.shared
     // Shared order store for Order History / Rated Orders
     @StateObject private var orderStore = OrderStore.shared
+
+    // Logout handling
+    @State private var showLogoutConfirm = false
+    @State private var showSignIn = false
 
     var body: some View {
         NavigationView {
@@ -78,12 +78,6 @@ struct ProfileMenuScreen: View {
                             .foregroundColor(.black)
                     }
 
-//                    // Rates -> Rated Orders screen
-//                    NavigationLink(destination: RatedOrdersScreen().environmentObject(orderStore)) {
-//                        ProfileIcon(iconName: "star", label: "Rates")
-//                            .foregroundColor(.black)
-//                    }
-
                     // Wallet
                     NavigationLink(destination: CashInView()) {
                         ProfileIcon(iconName: "creditcard", label: "Wallet")
@@ -108,8 +102,10 @@ struct ProfileMenuScreen: View {
                             .foregroundColor(.black)
                     }
 
-                    // Logout
-                    NavigationLink(destination: Text("Logout Screen")) {
+                    // Logout (now functional)
+                    Button {
+                        showLogoutConfirm = true
+                    } label: {
                         ProfileIcon(iconName: "power", label: "Logout")
                             .foregroundColor(.black)
                     }
@@ -152,6 +148,18 @@ struct ProfileMenuScreen: View {
                 }
             }
             .navigationBarHidden(true)
+            .alert("Confirm Logout", isPresented: $showLogoutConfirm) {
+                Button("Logout", role: .destructive) {
+                    auth.signOut()
+                    showSignIn = true
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Are you sure you want to log out?")
+            }
+            .fullScreenCover(isPresented: $showSignIn) {
+                LoginScreen().navigationBarBackButtonHidden(true)
+            }
         }
     }
 
@@ -192,3 +200,5 @@ struct ProfileScreen_Previews: PreviewProvider {
             .environmentObject(OrderStore.shared)
     }
 }
+
+//in the profilemenuscreen, i need the profile photo to be not the image i implemented, it should be a profile icon set as a default especially when on new accounts and let us be able to upload aphoto for the profile in the settings

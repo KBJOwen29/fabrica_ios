@@ -33,6 +33,14 @@ struct SettingsView: View {
                     TextField("Cellphone Number", text: $number)
                         .padding()
                         .background(RoundedRectangle(cornerRadius: 10).fill(Color(UIColor.systemGray5)))
+                    
+                    Button("Save Profile") { activeAlert = .confirmProfile }
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.black)
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
+                    
                     TextField("Email", text: $email)
                         .disabled(true)
                         .padding()
@@ -40,24 +48,21 @@ struct SettingsView: View {
                     SecureField("Password", text: $password)
                         .padding()
                         .background(RoundedRectangle(cornerRadius: 10).fill(Color(UIColor.systemGray5)))
-                }
-                .foregroundColor(.primary)
-
-                // Action buttons...
-                VStack(spacing: 10) {
-                    Button("Save Profile") { activeAlert = .confirmProfile }
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.black)
-                        .foregroundColor(.white)
-                        .cornerRadius(10)
-
+                    
                     Button("Save Password") { activeAlert = .confirmPassword }
                         .frame(maxWidth: .infinity)
                         .padding()
                         .background(Color.black)
                         .foregroundColor(.white)
                         .cornerRadius(10)
+                    
+                    
+                }
+                .foregroundColor(.primary)
+
+                // Action buttons...
+                VStack(spacing: 10) {
+
 
                     Button(role: .destructive) { activeAlert = .confirmLogout } label: {
                         Text("Logout")
