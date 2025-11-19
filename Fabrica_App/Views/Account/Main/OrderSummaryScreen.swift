@@ -5,7 +5,6 @@
 //  Created by STUDENT on 11/18/25.
 //
 
-
 import SwiftUI
 
 struct OrderSummaryScreen: View {
@@ -13,7 +12,6 @@ struct OrderSummaryScreen: View {
     @ObservedObject private var cart = CartManager.shared
     @ObservedObject private var auth = AuthService.shared
 
-    // Adjust to your real repository name
     private let repo = AccountsRepository.shared
 
     private let providedItems: [CartProduct]
@@ -26,6 +24,10 @@ struct OrderSummaryScreen: View {
     @State private var showInsufficientFunds = false
     @State private var showOrderSuccess = false
     @State private var showNotSignedIn = false
+
+    // Address selection
+    @State private var showingAddressSheet = false
+    @State private var activeAddress: AddressEntry? = AddressViewModel.currentSelectedAddress()
 
     init(items: [CartProduct] = []) {
         self.providedItems = items
@@ -69,43 +71,32 @@ struct OrderSummaryScreen: View {
     // MARK: - Body
     var body: some View {
         VStack(spacing: 0) {
-            headerView   // Fixed at top
-            Divider()    // Thin separator right below header (optional)
+            headerView
+            Divider()
 
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 14) {
-
-                    // Address
                     addressView
-
-                    // Wallet balance
                     walletBalanceRow
 
-                    // Items
                     if selectedItems.isEmpty {
                         emptyItemsNotice
                     } else {
                         itemsList
                     }
 
-                    // ETA
                     etaSection
-
-                    // Totals
                     totalsSection
 
-                    // Wallet warning
                     if walletBalance < total && !selectedItems.isEmpty {
                         walletWarning
                     }
                 }
                 .padding(.horizontal, horizontalPadding)
-                // Keep vertical padding minimal so content hugs top under header
                 .padding(.top, 10)
                 .padding(.bottom, 8)
             }
         }
-        // Confirm button inset at bottom WITHOUT adding extra white space
         .safeAreaInset(edge: .bottom) {
             confirmBar
         }
@@ -124,7 +115,7 @@ struct OrderSummaryScreen: View {
         }
         .alert("Order Placed", isPresented: $showOrderSuccess) {
             Button("OK", role: .cancel) {
-                // goToOrderHistory = true // Optional
+                // goToOrderHistory = true // optional navigation
             }
         } message: {
             Text("Payment successful. Your order has been placed.")
@@ -133,6 +124,17 @@ struct OrderSummaryScreen: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text("Please sign in to place an order.")
+        }
+        .sheet(isPresented: $showingAddressSheet, onDismiss: {
+            reloadAddress()
+        }) {
+            AddressList { chosen in
+                activeAddress = chosen
+            }
+        }
+        .onAppear(perform: reloadAddress)
+        .onReceive(auth.$currentUser) { _ in
+            reloadAddress()
         }
 
         NavigationLink(destination: OrderHistory(), isActive: $goToOrderHistory) {
@@ -159,11 +161,10 @@ struct OrderSummaryScreen: View {
                 .font(.system(size: 22, weight: .bold))
 
             Spacer()
-            // Balancer
             Color.clear.frame(width: 34, height: 34)
         }
         .padding(.horizontal, horizontalPadding)
-        .padding(.top, 4)   // Minimal top padding to hug safe area
+        .padding(.top, 4)
         .padding(.bottom, 4)
         .background(Color(.systemBackground))
     }
@@ -178,14 +179,21 @@ struct OrderSummaryScreen: View {
                 Text("Address")
                     .font(.subheadline)
                     .fontWeight(.semibold)
-                Text("Ibabang Dupay, Lucena, Quezon\nJim Owen K. Bognalbal\n0968 719 0116")
-                    .font(.subheadline)
+
+                if let addr = activeAddress {
+                    Text(renderAddress(addr))
+                        .font(.subheadline)
+                } else {
+                    Text("No address selected.\nTap Change to choose.")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
             }
 
             Spacer()
 
             Button("Change") {
-                // TODO: Navigate to address selection
+                showingAddressSheet = true
             }
             .font(.subheadline)
             .foregroundColor(.blue)
@@ -277,15 +285,15 @@ struct OrderSummaryScreen: View {
                     .frame(maxWidth: .infinity, minHeight: 54)
                     .background(
                         RoundedRectangle(cornerRadius: 26)
-                            .fill(selectedItems.isEmpty ? Color.gray : Color.black)
+                            .fill(selectedItems.isEmpty || activeAddress == nil ? Color.gray : Color.black)
                             .shadow(color: Color.black.opacity(0.15), radius: 4, x: 0, y: 3)
                     )
             }
-            .disabled(selectedItems.isEmpty)
+            .disabled(selectedItems.isEmpty || activeAddress == nil)
         }
         .padding(.horizontal, horizontalPadding)
         .padding(.top, 6)
-        .padding(.bottom, 8) // sits just above home indicator
+        .padding(.bottom, 8)
         .background(.ultraThinMaterial)
     }
 
@@ -293,6 +301,12 @@ struct OrderSummaryScreen: View {
     private func handleConfirm() {
         guard let user = auth.currentUser else {
             showNotSignedIn = true
+            return
+        }
+
+        // Require address selection
+        guard activeAddress != nil else {
+            // Could also show a dedicated alert
             return
         }
 
@@ -304,9 +318,7 @@ struct OrderSummaryScreen: View {
             repo.update(user)
             auth.updateCurrentUserIfSame(user)
 
-            // Optional: record order
-            // OrderStore.shared.addOrder(items: selectedItems, total: needed)
-
+            // Optional: record order (not implemented here)
             for item in selectedItems {
                 cart.delete(id: item.id)
             }
@@ -334,6 +346,22 @@ struct OrderSummaryScreen: View {
         f.numberStyle = .currency
         f.locale = Locale.current
         return f.string(from: NSNumber(value: value)) ?? "\(value)"
+    }
+
+    private func reloadAddress() {
+        activeAddress = AddressViewModel.currentSelectedAddress()
+    }
+
+    private func renderAddress(_ entry: AddressEntry) -> String {
+        var lines: [String] = []
+        lines.append("\(entry.barangay), \(entry.city)")
+        lines.append("\(entry.province), \(entry.region)")
+        if let notes = entry.notes {
+            lines.append(notes)
+        }
+        // Optionally append user name/phone if available:
+        // if let user = auth.currentUser { lines.append(user.fullName); lines.append(user.phone) }
+        return lines.joined(separator: "\n")
     }
 }
 

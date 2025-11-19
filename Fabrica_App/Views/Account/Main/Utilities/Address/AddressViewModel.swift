@@ -39,13 +39,13 @@ final class AddressViewModel: ObservableObject {
     // Data source
     @Published var regions: [PHRegion] = []
 
-    // Selected items
+    // Selected items (for building a new address)
     @Published var selectedRegion: PHRegion?
     @Published var selectedProvince: PHProvince?
     @Published var selectedCity: PHCity?
     @Published var selectedBarangay: PHBarangay?
 
-    // Optional notes (street/zip removed)
+    // Optional notes
     @Published var notes: String = ""
 
     // Sheet presentation
@@ -78,23 +78,23 @@ final class AddressViewModel: ObservableObject {
                selectedBarangay != nil
     }
 
-    // Load PH hierarchy JSON (ensure philippines.json is complete)
+    // Load PH hierarchy JSON
     func loadData(fileName: String) {
-        if let data = Bundle.main.url(forResource: fileName, withExtension: "json") {
+        if let dataURL = Bundle.main.url(forResource: fileName, withExtension: "json") {
             do {
-                let raw = try Data(contentsOf: data)
+                let raw = try Data(contentsOf: dataURL)
                 let decoded = try JSONDecoder().decode([PHRegion].self, from: raw)
                 DispatchQueue.main.async {
                     self.regions = decoded
                 }
             } catch {
                 #if DEBUG
-                print("Failed to load philippines data:", error)
+                print("Failed to load \(fileName).json:", error)
                 #endif
             }
         } else {
             #if DEBUG
-            print("philippines.json not found in bundle. Use philippines_sample.json as a template.")
+            print("\(fileName).json not found in bundle.")
             #endif
         }
     }
@@ -126,7 +126,7 @@ final class AddressViewModel: ObservableObject {
         presentingSelection = nil
     }
 
-    // Save to storage (per current user if present, otherwise guest storage)
+    // Save a newly composed address using current selections
     func save(completion: @escaping () -> Void) {
         guard isValid else { return }
 
@@ -142,6 +142,7 @@ final class AddressViewModel: ObservableObject {
         var list = Self.loadAddresses(for: ownerEmail)
         list.append(entry)
         Self.saveAddresses(list, for: ownerEmail)
+        Self.saveSelectedAddress(entry.id, for: ownerEmail) // auto-select new
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             completion()
@@ -151,7 +152,7 @@ final class AddressViewModel: ObservableObject {
 
 // MARK: - Simple UserDefaults storage (per email or guest)
 extension AddressViewModel {
-    // Use current signed-in user's email, otherwise a guest bucket so UI can be tested without login
+    // Use current signed-in user's email, otherwise guest bucket
     static func storageOwnerEmail() -> String {
         if let email = AuthService.shared.currentUser?.getEmail() {
             return email
@@ -188,5 +189,38 @@ extension AddressViewModel {
             print("Failed to encode addresses for \(email):", error)
             #endif
         }
+    }
+}
+
+// MARK: - Selected (Active) Address Persistence
+extension AddressViewModel {
+    private static func selectedKey(for email: String) -> String {
+        let trimmed = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return "selected_address_v1_\(trimmed)"
+    }
+
+    static func loadSelectedAddress(for email: String) -> AddressEntry? {
+        let key = selectedKey(for: email)
+        guard let idString = UserDefaults.standard.string(forKey: key),
+              let uuid = UUID(uuidString: idString) else {
+            return nil
+        }
+        let all = loadAddresses(for: email)
+        return all.first(where: { $0.id == uuid })
+    }
+
+    static func saveSelectedAddress(_ id: UUID, for email: String) {
+        let key = selectedKey(for: email)
+        UserDefaults.standard.set(id.uuidString, forKey: key)
+    }
+
+    static func currentSelectedAddress() -> AddressEntry? {
+        let email = storageOwnerEmail()
+        return loadSelectedAddress(for: email) ?? loadAddresses(for: email).last
+    }
+
+    static func selectAddress(_ entry: AddressEntry) {
+        let email = storageOwnerEmail()
+        saveSelectedAddress(entry.id, for: email)
     }
 }

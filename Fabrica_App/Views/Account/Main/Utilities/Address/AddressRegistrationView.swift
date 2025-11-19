@@ -10,7 +10,7 @@ import SwiftUI
 struct AddressRegistrationView: View {
     @Environment(\.dismiss) private var dismiss
 
-    // Typed fields (no dropdowns)
+    // Typed fields
     @State private var region: String = ""
     @State private var province: String = ""
     @State private var city: String = ""
@@ -19,8 +19,14 @@ struct AddressRegistrationView: View {
     @State private var zipCode: String = ""
     @State private var notes: String = ""
 
+    // Callback so parent can refresh
+    let onSaved: (() -> Void)?
+
+    init(onSaved: (() -> Void)? = nil) {
+        self.onSaved = onSaved
+    }
+
     private var isValid: Bool {
-        // Require region, province, city, barangay, and street
         !region.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
         !province.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
         !city.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
@@ -137,19 +143,26 @@ struct AddressRegistrationView: View {
     }
 
     private func saveAndDismiss() {
-        // Replace with your real persistence.
-        let address: [String: String] = [
-            "region": region.trimmingCharacters(in: .whitespacesAndNewlines),
-            "province": province.trimmingCharacters(in: .whitespacesAndNewlines),
-            "city": city.trimmingCharacters(in: .whitespacesAndNewlines),
-            "barangay": barangay.trimmingCharacters(in: .whitespacesAndNewlines),
-            "street": street.trimmingCharacters(in: .whitespacesAndNewlines),
-            "zipCode": zipCode.trimmingCharacters(in: .whitespacesAndNewlines),
-            "notes": notes.trimmingCharacters(in: .whitespacesAndNewlines)
-        ]
+        // Persist to storage via AddressViewModel static helpers
+        let entry = AddressEntry(
+            region: region.trimmingCharacters(in: .whitespacesAndNewlines),
+            province: province.trimmingCharacters(in: .whitespacesAndNewlines),
+            city: city.trimmingCharacters(in: .whitespacesAndNewlines),
+            barangay: barangay.trimmingCharacters(in: .whitespacesAndNewlines),
+            notes: notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : notes
+        )
+
+        let email = AddressViewModel.storageOwnerEmail()
+        var list = AddressViewModel.loadAddresses(for: email)
+        list.append(entry)
+        AddressViewModel.saveAddresses(list, for: email)
+        AddressViewModel.saveSelectedAddress(entry.id, for: email) // auto-select newest
+
         #if DEBUG
-        print("Saved address (typed):", address)
+        print("Persisted typed address entry:", entry)
         #endif
+
+        onSaved?()
         dismiss()
     }
 }

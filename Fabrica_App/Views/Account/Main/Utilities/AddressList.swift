@@ -9,8 +9,16 @@ import SwiftUI
 
 struct AddressList: View {
     @ObservedObject private var auth = AuthService.shared
+    @Environment(\.dismiss) private var dismiss
     @State private var addresses: [AddressEntry] = []
     @State private var showingAddSheet = false
+
+    // Callback when an address is selected (used from OrderSummaryScreen)
+    let onSelect: ((AddressEntry) -> Void)?
+
+    init(onSelect: ((AddressEntry) -> Void)? = nil) {
+        self.onSelect = onSelect
+    }
 
     var body: some View {
         NavigationView {
@@ -34,22 +42,7 @@ struct AddressList: View {
                 } else {
                     List {
                         ForEach(addresses) { addr in
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(addr.barangay)
-                                    .font(.headline)
-                                Text("\(addr.city), \(addr.province)")
-                                    .font(.subheadline)
-                                Text(addr.region)
-                                    .font(.footnote)
-                                    .foregroundColor(.secondary)
-                                if let notes = addr.notes, !notes.isEmpty {
-                                    Text(notes)
-                                        .font(.footnote)
-                                        .foregroundColor(.secondary)
-                                        .padding(.top, 2)
-                                }
-                            }
-                            .padding(.vertical, 6)
+                            addressRow(addr)
                         }
                     }
                 }
@@ -82,18 +75,53 @@ struct AddressList: View {
         }
         .onAppear(perform: reload)
         .onReceive(auth.$currentUser) { _ in
-            // Keep in sync if user signs in/out; still shows data (guest or user)
+            // Keep in sync if user signs in/out
             reload()
         }
         .sheet(isPresented: $showingAddSheet, onDismiss: {
             reload()
         }) {
-            AddressRegistrationView()
+            AddressRegistrationView(onSaved: {
+                reload()
+            })
+        }
+    }
+
+    private func addressRow(_ addr: AddressEntry) -> some View {
+        let content = VStack(alignment: .leading, spacing: 4) {
+            Text(addr.barangay)
+                .font(.headline)
+            Text("\(addr.city), \(addr.province)")
+                .font(.subheadline)
+            Text(addr.region)
+                .font(.footnote)
+                .foregroundColor(.secondary)
+            if let notes = addr.notes, !notes.isEmpty {
+                Text(notes)
+                    .font(.footnote)
+                    .foregroundColor(.secondary)
+                    .padding(.top, 2)
+            }
+        }
+        .padding(.vertical, 6)
+
+        return Group {
+            if let onSelect = onSelect {
+                Button {
+                    AddressViewModel.selectAddress(addr)
+                    onSelect(addr)
+                    dismiss()
+                } label: {
+                    content
+                }
+            } else {
+                content
+            }
         }
     }
 
     private func reload() {
-        let owner = AddressViewModel.storageOwnerEmail() // current user or guest
+        let owner = AddressViewModel.storageOwnerEmail()
         addresses = AddressViewModel.loadAddresses(for: owner)
     }
 }
