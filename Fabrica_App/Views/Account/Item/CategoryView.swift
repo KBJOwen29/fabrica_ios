@@ -7,10 +7,6 @@
 
 import SwiftUI
 
-// CategoryView: shows the selected category as a top "pill" and a 2-column product grid.
-// Uses the existing `Item` type and the global `items` array defined in:
-// Fabrica_App/Views/Account/Item/Items.swift
-// Tapping a product navigates to ProductDetailView(itemID:).
 
 struct CategoryView: View {
     let selectedCategory: String

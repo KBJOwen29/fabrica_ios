@@ -7,8 +7,7 @@
 
 import SwiftUI
 
-/// Generic searchable selection list for items that are Identifiable & have a `name` property.
-/// For simplicity we use key paths to extract names.
+
 struct SelectionListView<Item: Identifiable & Equatable>: View {
     let title: String
     let items: [Item]

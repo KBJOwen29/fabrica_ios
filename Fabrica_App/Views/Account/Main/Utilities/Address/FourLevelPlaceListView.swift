@@ -7,8 +7,7 @@
 
 import SwiftUI
 
-// A reusable list-based selector for Region → Province → City → Barangay.
-// Present this as a sheet from AddressRegistrationView and call onSelect when the user picks a barangay.
+
 struct FourLevelPlaceListView: View {
     let regions: [PHRegion]
     let onSelect: (PHRegion, PHProvince, PHCity, PHBarangay) -> Void

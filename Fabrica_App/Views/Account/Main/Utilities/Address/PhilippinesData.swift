@@ -7,7 +7,7 @@
 
 import Foundation
 
-// Data models expected in the JSON bundle. Keep them simple and Codable.
+
 
 struct PHRegion: Codable, Identifiable, Equatable {
     var id: String { code }
