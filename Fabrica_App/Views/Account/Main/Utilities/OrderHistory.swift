@@ -3,140 +3,223 @@
 //  Fabrica_App
 //
 //  Created by STUDENT on 11/18/25.
+//  Updated: Added delete (swipe + batch), filtering, multi-select.
 //
 
 import SwiftUI
 
-struct OrderHistory: View {
-    @ObservedObject private var auth = AuthService.shared
-    @EnvironmentObject var store: OrderStore
-
-    @State private var showRatingSheet = false
-    @State private var targetOrder: Order?
-    @State private var tempRating: Int = 0
-
-    private var orders: [Order] {
-        store.currentOrders
-    }
-
-    var body: some View {
-        List {
-            Section {
-                ForEach(orders) { order in
-                    OrderRow(order: order,
-                             showRate: order.rating == nil,
-                             onRateTap: {
-                                targetOrder = order
-                                tempRating = 0
-                                showRatingSheet = true
-                             })
-                }
-            }
-        }
-        .listStyle(.insetGrouped)
-        .navigationTitle("Order History")
-        .sheet(isPresented: $showRatingSheet) {
-            NavigationView {
-                VStack(spacing: 16) {
-                    Text("Rate your order")
-                        .font(.headline)
-                    if let o = targetOrder {
-                        Text(o.name)
-                            .multilineTextAlignment(.center)
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                    }
-                    StarRatingView(rating: $tempRating, interactive: true)
-                        .padding(.top, 8)
-
-                    Button {
-                        guard let orderId = targetOrder?.id, tempRating > 0 else { return }
-                        store.rateCurrentUser(orderId: orderId, rating: tempRating)
-                        showRatingSheet = false
-                    } label: {
-                        Text("Submit")
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(tempRating > 0 ? Color.black : Color.gray.opacity(0.5))
-                            .foregroundColor(.white)
-                            .cornerRadius(12)
-                    }
-                    .disabled(tempRating == 0)
-
-                    Spacer()
-                }
-                .padding()
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Close") { showRatingSheet = false }
-                    }
-                }
-            }
-        }
-    }
+enum OrderFilter: String, CaseIterable {
+    case all = "All"
+    case rated = "Rated"
+    case unrated = "Unrated"
 }
 
-private struct OrderRow: View {
-    let order: Order
-    let showRate: Bool
-    var onRateTap: () -> Void
+struct OrderHistory: View {
+    @ObservedObject private var orderStore = OrderStore.shared
+    @ObservedObject private var auth = AuthService.shared
+
+    @State private var filter: OrderFilter = .all
+    @State private var editMode: EditMode = .inactive
+    @State private var selectedForBatchDelete: Set<String> = []
+    @State private var showBatchDeleteAlert = false
+
+    private var currentEmail: String? {
+        auth.currentUser?.getEmail()
+    }
+
+    private var filteredOrders: [Order] {
+        guard let email = currentEmail else { return [] }
+        let all = orderStore.orders(for: email)
+        switch filter {
+        case .all: return all
+        case .rated: return all.filter { $0.rating != nil }
+        case .unrated: return all.filter { $0.rating == nil }
+        }
+    }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Group {
-                if let imageName = order.imageName, UIImage(named: imageName) != nil {
-                    Image(imageName).resizable().scaledToFill()
-                } else {
-                    Image(systemName: "photo").resizable().scaledToFit().foregroundColor(.gray)
+        VStack {
+            header
+
+            if currentEmail == nil {
+                emptyState(text: "Please sign in to view your order history.")
+            } else if filteredOrders.isEmpty {
+                emptyState(text: "No orders found.")
+            } else {
+                List(selection: $selectedForBatchDelete) {
+                    ForEach(filteredOrders) { order in
+                        orderRow(order)
+                            .contentShape(Rectangle())
+                    }
+                    .onDelete(perform: handleSwipeDelete)
+                }
+                .environment(\.editMode, $editMode)
+            }
+
+            footerBar
+        }
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationTitle("Order History")
+        .alert(isPresented: $showBatchDeleteAlert) {
+            Alert(
+                title: Text("Delete Orders"),
+                message: Text("Delete the selected orders? This cannot be undone."),
+                primaryButton: .destructive(Text("Delete")) {
+                    performBatchDelete()
+                },
+                secondaryButton: .cancel()
+            )
+        }
+    }
+
+    // MARK: - Subviews
+
+    private var header: some View {
+        VStack(spacing: 8) {
+            Picker("Filter", selection: $filter) {
+                ForEach(OrderFilter.allCases, id: \.self) { f in
+                    Text(f.rawValue).tag(f)
                 }
             }
-            .frame(width: 56, height: 56)
-            .background(Color.gray.opacity(0.15))
-            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .pickerStyle(SegmentedPickerStyle())
+            .padding(.horizontal)
 
-            VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                if editMode == .inactive {
+                    Button {
+                        withAnimation { editMode = .active }
+                    } label: {
+                        Text("Select Multiple")
+                            .font(.footnote)
+                            .padding(6)
+                            .background(Color.blue.opacity(0.15))
+                            .cornerRadius(6)
+                    }
+                } else {
+                    Button {
+                        withAnimation {
+                            editMode = .inactive
+                            selectedForBatchDelete.removeAll()
+                        }
+                    } label: {
+                        Text("Cancel Selection")
+                            .font(.footnote)
+                            .padding(6)
+                            .background(Color.red.opacity(0.15))
+                            .cornerRadius(6)
+                    }
+
+                    Button {
+                        if !selectedForBatchDelete.isEmpty {
+                            showBatchDeleteAlert = true
+                        }
+                    } label: {
+                        Text("Delete (\(selectedForBatchDelete.count))")
+                            .font(.footnote)
+                            .padding(6)
+                            .background(selectedForBatchDelete.isEmpty ? Color.gray.opacity(0.15) : Color.red.opacity(0.3))
+                            .cornerRadius(6)
+                    }
+                    .disabled(selectedForBatchDelete.isEmpty)
+                }
+
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+        }
+        .padding(.top, 8)
+    }
+
+    private func emptyState(text: String) -> some View {
+        VStack(spacing: 12) {
+            Text(text)
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var footerBar: some View {
+        HStack {
+            Spacer()
+            Text("\(filteredOrders.count) order(s)")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 6)
+    }
+
+    private func orderRow(_ order: Order) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
                 Text(order.name)
                     .font(.subheadline)
                     .fontWeight(.semibold)
                     .lineLimit(2)
-                HStack(spacing: 10) {
-                    QuantityBadge(quantity: order.quantity)
-                    Text("₱\(Int(order.price))")
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
-                }
+                Spacer()
+                Text("x\(order.quantity)")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+
+            HStack(spacing: 6) {
+                Text(priceString(order.price * Double(order.quantity)))
+                    .font(.subheadline)
+                    .fontWeight(.bold)
 
                 if let rating = order.rating {
-                    StarRatingView(rating: .constant(rating), interactive: false)
-                } else if showRate {
-                    Button("Rate") { onRateTap() }
-                        .font(.subheadline)
-                        .foregroundColor(.blue)
-                        .buttonStyle(.plain)
-                        .padding(.top, 4)
+                    Text("Rated \(rating)/5")
+                        .font(.caption)
+                        .foregroundColor(.green)
+                } else {
+                    Text("Not rated")
+                        .font(.caption2)
+                        .foregroundColor(.orange)
                 }
+                Spacer()
             }
-            Spacer()
+
+            Text("Purchased: \(formatted(date: order.purchasedAt))")
+                .font(.caption2)
+                .foregroundColor(.secondary)
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 6)
+    }
+
+    // MARK: - Swipe Delete
+    private func handleSwipeDelete(at offsets: IndexSet) {
+        guard let email = currentEmail else { return }
+        let idsToDelete = offsets.map { filteredOrders[$0].id }
+        OrderStore.shared.deleteOrders(for: email, ids: idsToDelete)
+    }
+
+    // MARK: - Batch Delete
+    private func performBatchDelete() {
+        guard let email = currentEmail else { return }
+        OrderStore.shared.deleteOrders(for: email, ids: Array(selectedForBatchDelete))
+        selectedForBatchDelete.removeAll()
+        editMode = .inactive
+    }
+
+    // MARK: - Helpers
+    private func priceString(_ value: Double) -> String {
+        let f = NumberFormatter()
+        f.numberStyle = .currency
+        f.locale = Locale.current
+        return f.string(from: NSNumber(value: value)) ?? "\(value)"
+    }
+
+    private func formatted(date: Date) -> String {
+        let df = DateFormatter()
+        df.dateFormat = "MMM d, yyyy h:mm a"
+        return df.string(from: date)
     }
 }
 
-private struct QuantityBadge: View {
-    let quantity: Int
-    var body: some View {
-        HStack(spacing: 6) {
-            Text("\(quantity)")
-                .font(.footnote)
-                .fontWeight(.bold)
-        }
-        .padding(.horizontal, 8).padding(.vertical, 4)
-        .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.black, lineWidth: 1))
-    }
-}
-
-struct OrderHistoryy_Previews: PreviewProvider {
+struct OrderHistory_Previews: PreviewProvider {
     static var previews: some View {
-        OrderHistory()
+        NavigationView {
+            OrderHistory()
+        }
     }
 }

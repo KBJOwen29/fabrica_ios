@@ -3,6 +3,7 @@
 //  Fabrica_App
 //
 //  Created by STUDENT on 11/18/25.
+//  Updated: Added delete APIs (single, multiple, current user)
 //
 
 import SwiftUI
@@ -10,10 +11,10 @@ import SwiftUI
 struct Order: Identifiable, Codable, Equatable {
     let id: String
     let name: String
-    let price: Double
+    let price: Double          // per-unit effective price at purchase time
     let quantity: Int
     let imageName: String?
-    var rating: Int?  // nil if not yet rated
+    var rating: Int?           // nil if not yet rated
     let purchasedAt: Date
 }
 
@@ -59,16 +60,6 @@ final class OrderStore: ObservableObject {
         return orders(for: e)
     }
 
-    var currentUnratedOrders: [Order] {
-        guard let e = currentEmail else { return [] }
-        return unratedOrders(for: e)
-    }
-
-    var currentRatedOrders: [Order] {
-        guard let e = currentEmail else { return [] }
-        return ratedOrders(for: e)
-    }
-
     // MARK: - Mutations
     func addOrders(for email: String, from products: [CartProduct]) {
         guard !products.isEmpty else { return }
@@ -79,7 +70,7 @@ final class OrderStore: ObservableObject {
             Order(
                 id: UUID().uuidString,
                 name: p.name,
-                price: p.effectivePrice,          // per-unit effective price
+                price: p.effectivePrice,
                 quantity: p.quantity,
                 imageName: p.imageURL,
                 rating: nil,
@@ -92,7 +83,6 @@ final class OrderStore: ObservableObject {
         objectWillChange.send()
     }
 
-    // Convenience for current signed-in account
     func addOrdersForCurrentUser(from products: [CartProduct]) {
         guard let e = currentEmail else { return }
         addOrders(for: e, from: products)
@@ -111,6 +101,36 @@ final class OrderStore: ObservableObject {
     func rateCurrentUser(orderId: String, rating: Int) {
         guard let e = currentEmail else { return }
         rate(orderId: orderId, for: e, rating: rating)
+    }
+
+    // MARK: - Deletions (NEW)
+    func deleteOrder(for email: String, id: String) {
+        let k = key(for: email)
+        guard var list = ordersByEmail[k] else { return }
+        list.removeAll { $0.id == id }
+        ordersByEmail[k] = list
+        save()
+        objectWillChange.send()
+    }
+
+    func deleteOrders(for email: String, ids: [String]) {
+        let k = key(for: email)
+        guard var list = ordersByEmail[k], !ids.isEmpty else { return }
+        let idSet = Set(ids)
+        list.removeAll { idSet.contains($0.id) }
+        ordersByEmail[k] = list
+        save()
+        objectWillChange.send()
+    }
+
+    func deleteOrderForCurrentUser(id: String) {
+        guard let e = currentEmail else { return }
+        deleteOrder(for: e, id: id)
+    }
+
+    func deleteOrdersForCurrentUser(ids: [String]) {
+        guard let e = currentEmail else { return }
+        deleteOrders(for: e, ids: ids)
     }
 
     // MARK: - Persistence
